@@ -2,7 +2,7 @@
  * Lazy skeleton loading, honest file labels, per-page SEO,
  * inline HTML/image rendering, big galleries, target=_blank everywhere.
  */
-const OWNER = "taynotfound", REPO = "libcom-mirror", BRANCH = "main";
+const OWNER = "taynotfound", REPO = "open-stacks-library", BRANCH = "main";
 const API = `https://api.github.com/repos/${OWNER}/${REPO}`;
 const RAW = `https://raw.githubusercontent.com/${OWNER}/${REPO}/${BRANCH}`;
 const ZIPBALL = `https://github.com/${OWNER}/${REPO}/archive/refs/heads/${BRANCH}.zip`;

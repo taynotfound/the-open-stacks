@@ -1,6 +1,6 @@
 # The Open Stacks
 
-A browsable, repo-watching frontend for [`taynotfound/libcom-mirror`](https://github.com/taynotfound/libcom-mirror) — a growing anti-censorship library.
+A browsable, repo-watching frontend for [`taynotfound/open-stacks-library`](https://github.com/taynotfound/open-stacks-library) — a growing anti-censorship library.
 
 Static site (no build step). It reads the mirror repo **live** from GitHub, so new books "just work" the moment their Markdown lands in the mirror — no rebuild, no redeploy.
 
