@@ -9,7 +9,7 @@ const ZIPBALL = `https://github.com/${OWNER}/${REPO}/archive/refs/heads/${BRANCH
 const ORIGIN = (typeof location!=="undefined" && location.origin && location.origin.startsWith("http")) ? location.origin : "https://theopenstacks.apolochees.me";
 const DEEPL_KEY = "REDACTED";
 const DEEPL_URL = "https://api-free.deepl.com/v2/translate";
-const TX_PROXY = "https://translate.taymaerz.de";
+const TX_PROXY = ""; // same-origin — calls go to /api/translate/*
 
 const el = id => document.getElementById(id);
 let books = [], fState = "all", fCat = null, fLang = null, fSort = "alpha", bySlug = {};
@@ -31,13 +31,15 @@ async function translateDeepL(text, sourceLang) {
 }
 
 async function translateMyMemory(text, sourceLang) {
-  // MyMemory: 1000 words/day free, no key needed
-  const url = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text.slice(0,500))}&langpair=${sourceLang}|en`;
-  const resp = await fetch(url);
-  if (!resp.ok) throw new Error(`MyMemory ${resp.status}`);
+  const resp = await fetch(`${TX_PROXY}/api/translate/mymemory`, {
+    method: "POST",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({text, sourceLang})
+  });
+  if (!resp.ok) throw new Error(`MyMemory proxy ${resp.status}`);
   const d = await resp.json();
-  if (d.responseStatus !== 200) throw new Error(`MyMemory: ${d.responseDetails}`);
-  return d.responseData.translatedText;
+  if (d.error) throw new Error(d.error);
+  return d.translated;
 }
 
 // Google Translate (unofficial API - sends data to Google servers)
