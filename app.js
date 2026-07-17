@@ -7,8 +7,6 @@ const API = `https://api.github.com/repos/${OWNER}/${REPO}`;
 const RAW = `https://raw.githubusercontent.com/${OWNER}/${REPO}/${BRANCH}`;
 const ZIPBALL = `https://github.com/${OWNER}/${REPO}/archive/refs/heads/${BRANCH}.zip`;
 const ORIGIN = (typeof location!=="undefined" && location.origin && location.origin.startsWith("http")) ? location.origin : "https://theopenstacks.apolochees.me";
-const DEEPL_KEY = "REDACTED";
-const DEEPL_URL = "https://api-free.deepl.com/v2/translate";
 const TX_PROXY = ""; // same-origin — calls go to /api/translate/*
 
 const el = id => document.getElementById(id);
@@ -19,7 +17,7 @@ const LANG_NAMES = {en:"English",de:"Deutsch",fr:"Francais",es:"Espanol",it:"Ita
 const TX_CACHE_PREFIX = "os_tx_";
 
 async function translateDeepL(text, sourceLang) {
-  const resp = await fetch(`${TX_PROXY}/translate/deepl`, {
+  const resp = await fetch(`${TX_PROXY}/api/translate/deepl`, {
     method: "POST",
     headers: {"Content-Type": "application/json"},
     body: JSON.stringify({text, sourceLang})
@@ -42,14 +40,17 @@ async function translateMyMemory(text, sourceLang) {
   return d.translated;
 }
 
-// Google Translate (unofficial API - sends data to Google servers)
+// Google Translate — goes through server-side proxy to avoid direct browser→Google calls
 async function translateGoogle(text, sourceLang) {
-  const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=${sourceLang}&tl=en&dt=t&q=${encodeURIComponent(text.slice(0,4500))}`;
-  const resp = await fetch(url);
-  if (!resp.ok) throw new Error(`Google ${resp.status}`);
+  const resp = await fetch(`${TX_PROXY}/api/translate`, {
+    method: "POST",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({q: text, source: sourceLang, target: "en"})
+  });
+  if (!resp.ok) throw new Error(`Google proxy ${resp.status}`);
   const d = await resp.json();
-  // response is nested arrays: [[["translated","original",...],...],...]
-  return d[0].map(seg => seg[0]).join("");
+  if (d.error) throw new Error(d.error);
+  return d.translated;
 }
 
 // Splits text into chunks of ~4000 chars at paragraph boundaries, translates each, rejoins.
@@ -813,6 +814,10 @@ matters. No fabricated quotes, no fake claims.
       <p>Ready? <a href="${repo}" target="_blank" rel="noopener noreferrer">Open the repo <i class="fa-solid fa-arrow-right"></i></a> · or just <a href="${repo}/new/main/books" target="_blank" rel="noopener noreferrer">create a file in the browser <i class="fa-solid fa-arrow-right"></i></a></p>
       <p class="stance" style="margin-top:14px">Read it. Share it. Fork it. <b>Organize.</b></p>
     </div>
+
+    <h2 class="stath2"><i class="fa-solid fa-envelope fa-inline"></i>No GitHub account?</h2>
+    <p class="statnote">That's fine. Write the Markdown file, attach it to an email, and send it to <a href="mailto:pixel@systemli.org"><strong>pixel@systemli.org</strong></a>. Include the title, source URL, and category. We'll review and add it manually.</p>
+    <a class="btn ghost" href="mailto:pixel@systemli.org?subject=Open Stacks contribution&body=Title:%0ASource URL:%0ACategory:%0A%0A(Attach your .md file or paste the content below)"><i class="fa-solid fa-envelope fa-inline"></i>Send contribution by email</a>
   `;
   window.scrollTo(0,0);
 }

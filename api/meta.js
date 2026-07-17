@@ -39,8 +39,9 @@ export default async function handler(req, res){
 
   let html;
   try {
-    const idxHtml = await fetch(`${ORIGIN}/index.html`).then(r=>r.text());
-    html = idxHtml;
+    const { readFileSync } = await import("fs");
+    const { join } = await import("path");
+    html = readFileSync(join(process.cwd(), "index.html"), "utf8");
   } catch(e){
     res.status(500).send("index load failed");
     return;

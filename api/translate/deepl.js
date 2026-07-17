@@ -1,5 +1,6 @@
 export default async function handler(req, res) {
-  res.setHeader("Access-Control-Allow-Origin", "*");
+  const origin = req.headers.origin || "";
+  if (origin) res.setHeader("Access-Control-Allow-Origin", origin.includes("theopenstacks.apolochees.me") ? origin : "https://theopenstacks.apolochees.me");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
   res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
   if (req.method === "OPTIONS") return res.status(204).end();
@@ -9,6 +10,7 @@ export default async function handler(req, res) {
   if (typeof body === "string") { try { body = JSON.parse(body); } catch { body = {}; } }
   const { text, sourceLang } = body || {};
   if (!text || !sourceLang) return res.status(400).json({ error: "text and sourceLang required" });
+  if (text.length > 15000) return res.status(400).json({ error: "text too long (max 15000 chars)" });
 
   const DEEPL_KEY = process.env.DEEPL_KEY;
   if (!DEEPL_KEY) return res.status(503).json({ error: "DeepL not configured" });

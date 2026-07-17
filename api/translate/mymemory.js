@@ -1,5 +1,6 @@
 export default async function handler(req, res) {
-  res.setHeader("Access-Control-Allow-Origin", "*");
+  const origin = req.headers.origin || "";
+  if (origin) res.setHeader("Access-Control-Allow-Origin", origin.includes("theopenstacks.apolochees.me") ? origin : "https://theopenstacks.apolochees.me");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
   res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
   if (req.method === "OPTIONS") return res.status(204).end();

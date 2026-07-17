@@ -5,13 +5,36 @@
 const OWNER = "taynotfound";
 const REPO = "open-stacks-library";
 const BASE_BRANCH = "main";
+const ALLOWED_ORIGIN = "https://theopenstacks.apolochees.me";
+
+// Simple in-memory rate limit: max 3 PRs per IP per hour
+const rateLimitMap = new Map();
+function checkRateLimit(ip) {
+  const now = Date.now();
+  const window = 60 * 60 * 1000; // 1 hour
+  const max = 3;
+  const entry = rateLimitMap.get(ip) || { count: 0, reset: now + window };
+  if (now > entry.reset) { entry.count = 0; entry.reset = now + window; }
+  if (entry.count >= max) return false;
+  entry.count++;
+  rateLimitMap.set(ip, entry);
+  return true;
+}
+
+// Sanitize a string for YAML frontmatter value (no newlines, no quotes)
+const sanitizeYaml = s => String(s || "").replace(/[\r\n]/g, " ").replace(/"/g, "'").slice(0, 200);
 
 export default async function handler(req, res) {
-  res.setHeader("Access-Control-Allow-Origin", "*");
+  const origin = req.headers.origin || "";
+  res.setHeader("Access-Control-Allow-Origin", origin === ALLOWED_ORIGIN ? ALLOWED_ORIGIN : ALLOWED_ORIGIN);
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
   res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
   if (req.method === "OPTIONS") return res.status(204).end();
   if (req.method !== "POST") return res.status(405).json({ error: "POST only" });
+
+  // Rate limit by IP
+  const ip = req.headers["x-forwarded-for"]?.split(",")[0]?.trim() || req.socket?.remoteAddress || "unknown";
+  if (!checkRateLimit(ip)) return res.status(429).json({ error: "Too many contributions. Try again later." });
 
   const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
   if (!GITHUB_TOKEN) return res.status(503).json({ error: "GitHub token not configured" });
@@ -24,6 +47,15 @@ export default async function handler(req, res) {
 
   if (!originalSlug || !originalPath || !translatedBody || !translatedFrom || !translatedType)
     return res.status(400).json({ error: "Missing required fields" });
+
+  // Validate types
+  const allowedEngines = ["deepl", "mymemory", "google"];
+  if (!allowedEngines.includes(translatedType))
+    return res.status(400).json({ error: "Invalid translatedType" });
+  if (!/^[a-z]{2}(-[A-Z]{2})?$/.test(translatedFrom))
+    return res.status(400).json({ error: "Invalid translatedFrom language code" });
+  if (translatedBody.length > 200000)
+    return res.status(400).json({ error: "translatedBody too large" });
 
   const gh = (path, opts = {}) => fetch(`https://api.github.com${path}`, {
     ...opts,
@@ -55,31 +87,20 @@ export default async function handler(req, res) {
     }
 
     // 3. Build translated markdown file
-    const category = originalPath.split("/")[1] || "general";
+    const category = (originalPath.split("/")[1] || "general").replace(/[^a-zA-Z0-9_-]/g, "");
     const filePath = `books/${category}/${originalSlug}-en.md`;
     const now = new Date().toISOString().split("T")[0];
     const engineLabel = { deepl: "DeepL", mymemory: "MyMemory", google: "Google Translate" }[translatedType] || translatedType;
 
-    const fileContent = `---
-title: "${(translatedTitle || originalTitle || originalSlug).replace(/"/g, '\\"')}"
-language: en
-translatedType: ${translatedType}
-translatedFrom: ${translatedFrom}
-originalSlug: ${originalSlug}
-translationDate: "${now}"
----
-
-> *Translated to English from \`${translatedFrom}\` using ${engineLabel}. Original: [${originalTitle || originalSlug}](/book/${originalSlug})*
-
-${translatedBody}
-`;
+    const safeTitle = sanitizeYaml(translatedTitle || originalTitle || originalSlug);
+    const fileContent = `---\ntitle: "${safeTitle}"\nlanguage: en\ntranslatedType: ${translatedType}\ntranslatedFrom: ${translatedFrom}\noriginalSlug: ${originalSlug}\ntranslationDate: "${now}"\n---\n\n${translatedBody}\n`;
 
     // 4. Commit the file
     const encoded = Buffer.from(fileContent, "utf8").toString("base64");
     const commitResp = await gh(`/repos/${OWNER}/${REPO}/contents/${filePath}`, {
       method: "PUT",
       body: {
-        message: `feat: add EN translation of ${originalSlug} (${engineLabel})`,
+        message: `[Translation] add EN translation of ${originalSlug} (${engineLabel})`,
         content: encoded,
         branch: branchName
       }
@@ -93,7 +114,7 @@ ${translatedBody}
     const prResp = await gh(`/repos/${OWNER}/${REPO}/pulls`, {
       method: "POST",
       body: {
-        title: `[Translation] ${translatedTitle || originalTitle || originalSlug} (EN, ${engineLabel})`,
+        title: `[Translation] ${safeTitle} (EN, ${engineLabel})`,
         head: branchName,
         base: BASE_BRANCH,
         body: `## Translation Contribution\n\n**Original slug:** \`${originalSlug}\`\n**Original language:** ${translatedFrom}\n**Translation engine:** ${engineLabel}\n**Date:** ${now}\n\nPlease review for accuracy before merging.`
