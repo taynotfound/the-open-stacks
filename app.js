@@ -9,6 +9,9 @@ const ZIPBALL = `https://github.com/${OWNER}/${REPO}/archive/refs/heads/${BRANCH
 
 const el = id => document.getElementById(id);
 let books = [], fState = "all", fCat = null, bySlug = {};
+const PAGE = 100;   // books rendered per page; search still indexes ALL of them
+let shown = PAGE, lastView = [];
+function resetAndRender(){ shown = PAGE; renderList(); }
 
 function parseFront(md){
   const m = md.match(/^---\n([\s\S]*?)\n---/);
@@ -126,22 +129,35 @@ function renderList(){
     if(q){ if(!(b.title+" "+b.author+" "+b.tags.join(" ")).toLowerCase().includes(q)) return false; }
     return true;
   }).sort((a,b)=>a.title.toLowerCase()<b.title.toLowerCase()?-1:1);
-  el("count").textContent = `${view.length} book${view.length===1?"":"s"}`;
+  lastView = view;
+  // paginate: render up to `shown` (grows by PAGE), but search still indexed ALL books above
+  const page = view.slice(0, shown);
+  el("count").textContent = view.length===page.length
+    ? `${view.length} book${view.length===1?"":"s"}`
+    : `showing ${page.length} of ${view.length} books`;
   el("list").className = "grid";
   // lazy skeleton render: place skeletons, swap in real cards as they scroll near viewport
   if(io) io.disconnect();
-  el("list").innerHTML = view.map((b,i)=>`<div class="slot card skel" data-i="${i}"><div class="cover sk"></div><div class="cardbody"><div class="sk line"></div><div class="sk line short"></div></div></div>`).join("") || `<div class="loading">No books match.</div>`;
+  el("list").innerHTML = page.map((b,i)=>`<div class="slot card skel" data-i="${i}"><div class="cover sk"></div><div class="cardbody"><div class="sk line"></div><div class="sk line short"></div></div></div>`).join("") || `<div class="loading">No books match.</div>`;
   const slots = [...el("list").querySelectorAll(".slot")];
   io = new IntersectionObserver((entries,obs)=>{
     entries.forEach(en=>{
       if(en.isIntersecting){
         const i = +en.target.dataset.i;
-        en.target.outerHTML = cardHTML(view[i]);
+        en.target.outerHTML = cardHTML(page[i]);
         obs.unobserve(en.target);
       }
     });
   }, {rootMargin:"600px"});
   slots.forEach(s=>io.observe(s));
+  // load-more control
+  let more = el("more");
+  if(!more){ more = document.createElement("div"); more.id="more"; el("list").after(more); }
+  if(view.length > page.length){
+    more.innerHTML = `<button id="moreBtn">Load more (${view.length-page.length} more)</button>`;
+    el("moreBtn").addEventListener("click",()=>{ shown += PAGE; renderList(); });
+    more.style.display="";
+  } else { more.style.display="none"; }
 }
 
 // crude, safe markdown->html for scraped body (paragraphs, links, images, headings)
@@ -230,7 +246,7 @@ function route(){
   const h = location.hash;
   const controls = el("controls");
   const m = h.match(/#\/book\/(.+)$/);
-  if(m){ controls.style.display="none"; renderBook(decodeURIComponent(m[1])); }
+  if(m){ controls.style.display="none"; const more=el("more"); if(more) more.style.display="none"; renderBook(decodeURIComponent(m[1])); }
   else { controls.style.display=""; renderList(); }
 }
 
@@ -243,7 +259,7 @@ function buildCats(){
     const c = btn.dataset.c;
     if(fCat===c){fCat=null;btn.classList.remove("on");}
     else{el("cats").querySelectorAll("button").forEach(x=>x.classList.remove("on"));btn.classList.add("on");fCat=c;}
-    renderList();
+    resetAndRender();
   }));
 }
 
@@ -256,10 +272,10 @@ function buildCats(){
     const total = books.reduce((n,b)=>n+b.files.length,0);
     el("sub").innerHTML = `${books.length} books · <span class="badge">${hosted}</span>/${total} files self-hosted · <a href="${API.replace('api.github.com/repos','github.com')}/commit/${sha}" target="_blank" rel="noopener noreferrer">@${sha.slice(0,7)}</a>`;
     buildCats();
-    el("q").addEventListener("input", renderList);
+    el("q").addEventListener("input", resetAndRender);
     document.querySelectorAll(".filters button").forEach(btn=>btn.addEventListener("click",()=>{
       document.querySelectorAll(".filters button").forEach(x=>x.classList.remove("on"));
-      btn.classList.add("on"); fState=btn.dataset.f; renderList();
+      btn.classList.add("on"); fState=btn.dataset.f; resetAndRender();
     }));
     window.addEventListener("hashchange", route);
     route();
