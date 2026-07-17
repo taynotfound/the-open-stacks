@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>The Open Stacks — a growing anti-censorship library</title>
+<title>The Open Stacks - a growing anti-censorship library</title>
 <meta name="description" content="A growing, multi-source library preserving radical, political, and at-risk books. Antifascist, anti-capitalist, pro free speech. We mirror what's at risk of being taken down. Free downloads, no paywalls.">
 <meta name="keywords" content="free books, banned books, radical library, anarchism, marxism, antifascist, leftist library, censorship, 1984 orwell, public domain, ebook mirror, at-risk texts">
 <meta name="robots" content="index,follow">
@@ -11,13 +11,13 @@
 <link rel="canonical" href="https://openstacks.example/">
 <!-- Open Graph -->
 <meta property="og:type" content="website">
-<meta property="og:title" content="The Open Stacks — a growing anti-censorship library">
+<meta property="og:title" content="The Open Stacks - a growing anti-censorship library">
 <meta property="og:description" content="We mirror radical, political, and at-risk books so they can't be quietly deleted. Antifascist. Anti-capitalist. Pro free speech. Free downloads, no paywalls.">
 <meta property="og:site_name" content="The Open Stacks">
 <meta property="og:image" content="https://raw.githubusercontent.com/taynotfound/open-stacks-library/main/files/1984-orwell.html">
 <meta property="og:url" content="https://openstacks.example/">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="The Open Stacks — a growing anti-censorship library">
+<meta name="twitter:title" content="The Open Stacks - a growing anti-censorship library">
 <meta name="twitter:description" content="We mirror at-risk books so they can't be quietly deleted. Antifascist, anti-capitalist, pro free speech.">
 <meta name="theme-color" content="#e8543f">
 <script type="application/ld+json">
@@ -27,7 +27,10 @@
 "description":"A growing, multi-source library preserving radical, political, and at-risk books. We mirror what is at risk of being taken down.",
 "potentialAction":{"@type":"SearchAction","target":"https://openstacks.example/#q={search_term_string}","query-input":"required name=search_term_string"}}
 </script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" integrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A==" crossorigin="anonymous" referrerpolicy="no-referrer">
 <style>
+.fa-inline{margin-right:.5em}
+.statlabel .fa-inline,.bignum .fa-inline{margin-right:.4em}
 :root{--bg:#120f0e;--surf:#1c1917;--surf2:#241f1d;--bd:#2c2724;--tx:#e8e2d8;--mut:#8a8175;
 --red:#e8543f;--red2:#c0392b;--blk:#0c0a09;--grn:#5db075;--amb:#d99a2b}
 *{box-sizing:border-box}
@@ -73,6 +76,7 @@ border-radius:10px;overflow:hidden;color:var(--tx)}
 .card:hover{border-color:var(--red);text-decoration:none;transform:translateY(-2px);transition:.15s}
 .cover{width:100%;aspect-ratio:3/4;object-fit:cover;background:var(--surf2);display:block}
 .cover.ph{display:flex;align-items:center;justify-content:center;font-size:40px;color:#403a36}
+.cover.ph::before{font-family:"Font Awesome 6 Free";font-weight:900;content:"\f02d"}
 .cover.big{width:150px;aspect-ratio:3/4;border-radius:8px;flex:none}
 .risk{position:absolute;top:8px;left:8px;background:var(--red);color:#fff;font-size:10px;
 font-weight:700;padding:3px 7px;border-radius:5px;letter-spacing:.03em}
@@ -130,21 +134,52 @@ border:1px solid var(--bd);border-radius:9px;color:var(--mut);font-weight:600;fo
 .reader iframe{width:100%;height:78vh;border:0;display:block}
 footer{color:var(--mut);font-size:12px;text-align:center;padding:40px 20px;border-top:1px solid var(--bd);line-height:1.8}
 footer .red{color:var(--red)}
+/* ---- stats + contribute pages ---- */
+.stath1{font-size:30px;font-weight:800;letter-spacing:-.02em;margin:16px 0 8px}
+.stath2{font-size:19px;font-weight:700;margin:34px 0 6px}
+.statlede{color:var(--mut);font-size:16px;max-width:680px;margin:0 0 8px}
+.statnote{color:var(--mut);font-size:13.5px;max-width:680px;margin:4px 0 12px}
+.bigstats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin:20px 0 8px}
+.bigstat{background:var(--surf);border:1px solid var(--bd);border-radius:12px;padding:18px 16px}
+.bigstat .bignum{font-size:30px;font-weight:800;color:var(--red);letter-spacing:-.02em;line-height:1}
+.bigstat .biglabel{font-size:12.5px;color:var(--mut);margin-top:6px;text-transform:uppercase;letter-spacing:.04em}
+.statgroup{margin:8px 0 4px}
+.statrow{display:flex;align-items:center;gap:12px;padding:5px 0}
+.statlabel{flex:0 0 190px;font-size:14px;color:var(--tx);text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.stattrack{flex:1;height:12px;background:var(--surf2);border-radius:6px;overflow:hidden}
+.statfill{height:100%;background:linear-gradient(90deg,var(--red2),var(--red));border-radius:6px;min-width:2px;transition:width .5s ease}
+.statval{flex:0 0 70px;font-size:13px;color:var(--mut);font-variant-numeric:tabular-nums}
+.statcta{margin:34px 0 10px;padding:18px;background:var(--surf);border:1px solid var(--bd);border-left:3px solid var(--red);border-radius:10px}
+.statcta p{margin:0}
+.contribgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:14px;margin:20px 0}
+.contribstep{background:var(--surf);border:1px solid var(--bd);border-radius:12px;padding:18px 16px;position:relative}
+.contribstep h3{margin:10px 0 6px;font-size:16px}
+.contribstep p{margin:0 0 12px;font-size:14px;color:var(--mut)}
+.stepnum{width:30px;height:30px;border-radius:50%;background:var(--red);color:#fff;font-weight:800;display:flex;align-items:center;justify-content:center;font-size:15px}
+.codeblock{background:var(--blk);border:1px solid var(--bd);border-radius:10px;padding:16px;overflow-x:auto;font:13px/1.55 ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--tx);white-space:pre}
+code{background:var(--surf2);border:1px solid var(--bd);border-radius:5px;padding:1px 6px;font:12.5px ui-monospace,Menlo,monospace;color:var(--amb)}
+.codeblock code{background:none;border:0;padding:0;color:inherit}
+.contribrules{margin:8px 0;padding-left:20px;max-width:700px}
+.contribrules li{margin:8px 0;font-size:14.5px;color:var(--tx)}
+.contribrules li b{color:var(--red)}
+@media(max-width:560px){.statlabel{flex-basis:120px;font-size:12.5px}}
 </style>
 </head>
 <body>
 <header class="hero"><div class="in">
-<div class="brand"><span class="star">★</span> The Open Stacks</div>
+<div class="brand"><i class="fa-solid fa-book-open-reader star"></i> The Open Stacks</div>
 <div class="tagline">host what they'd erase</div>
 <div class="acts">
-<a class="btn red" id="dlall" href="#">⬇ Download everything (.zip)</a>
-<a class="btn ghost" href="https://github.com/taynotfound/open-stacks-library">★ Fork on GitHub</a>
+<a class="btn red" id="dlall" href="#"><i class="fa-solid fa-download fa-inline"></i>Download everything (.zip)</a>
+<a class="btn ghost" href="#/stats"><i class="fa-solid fa-chart-column fa-inline"></i>Stats</a>
+<a class="btn ghost" href="#/contribute"><i class="fa-solid fa-plus fa-inline"></i>Contribute</a>
+<a class="btn ghost" href="https://github.com/taynotfound/open-stacks-library"><i class="fa-brands fa-github fa-inline"></i>Fork on GitHub</a>
 </div>
 </div></header>
 
 <section class="creed">
-<p>A <strong>growing, community-run library</strong> — not just one archive. We gather radical, political, and endangered texts from many sources and <strong>keep a copy of whatever is at risk of being taken down</strong>. Every book credits where it came from; nothing here is hidden or claimed as ours.</p>
-<p class="stance">We stand for <b>free speech</b> and <b>free access</b> — and against the <b>far right</b>, <b>state control</b>, <b>capitalism</b>, and <b>censorship</b>. Read it. Share it. Fork it. <b>Organize.</b></p>
+<p>A <strong>growing, community-run library</strong> - not just one archive. We gather radical, political, and endangered texts from many sources and <strong>keep a copy of whatever is at risk of being taken down</strong>. Every item credits where it came from; nothing here is hidden or claimed as ours.</p>
+<p class="stance">We stand for <b>free speech</b> and <b>free access</b> - and against the <b>far right</b>, <b>state control</b>, <b>capitalism</b>, and <b>censorship</b>. Read it. Share it. Fork it. <b>Organize.</b></p>
 </section>
 
 <div class="wrap">
@@ -153,7 +188,7 @@ footer .red{color:var(--red)}
 <input class="search" id="q" placeholder="search title, author, tag…" autocomplete="off">
 <div class="filters">
 <button data-f="all" class="on">All</button>
-<button data-f="risk">⚠ At risk</button>
+<button data-f="risk"><i class="fa-solid fa-triangle-exclamation fa-inline"></i>At risk</button>
 <button data-f="full"><span class="dot full"></span>Full copy</button>
 <button data-f="partial"><span class="dot partial"></span>Partial</button>
 <button data-f="none"><span class="dot none"></span>Linked only</button>
@@ -170,6 +205,6 @@ Sources include <a href="https://libcom.org/book">libcom.org</a>, <a href="https
 Source: <a href="https://github.com/taynotfound/open-stacks-library">github.com/taynotfound/open-stacks-library</a><br>
 Texts remain © their authors / under each source's terms. Take what you need, give what you can.
 </footer>
-<script src="app.js?v=10"></script>
+<script src="app.js?v=12"></script>
 </body>
 </html>
