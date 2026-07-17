@@ -38,13 +38,23 @@ async function translateMyMemory(text, sourceLang) {
   return d.responseData.translatedText;
 }
 
+// Google Translate (unofficial API - sends data to Google servers)
+async function translateGoogle(text, sourceLang) {
+  const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=${sourceLang}&tl=en&dt=t&q=${encodeURIComponent(text.slice(0,4500))}`;
+  const resp = await fetch(url);
+  if (!resp.ok) throw new Error(`Google ${resp.status}`);
+  const d = await resp.json();
+  // response is nested arrays: [[["translated","original",...],...],...]
+  return d[0].map(seg => seg[0]).join("");
+}
+
 // Splits text into chunks of ~4000 chars at paragraph boundaries, translates each, rejoins.
-async function translateText(text, sourceLang) {
-  const cacheKey = TX_CACHE_PREFIX + sourceLang + "_" + btoa(encodeURIComponent(text.slice(0,80))).slice(0,32);
+async function translateText(text, sourceLang, engine) {
+  const cacheKey = TX_CACHE_PREFIX + engine + "_" + sourceLang + "_" + btoa(encodeURIComponent(text.slice(0,80))).slice(0,32);
   const cached = localStorage.getItem(cacheKey);
   if (cached) return {text: cached, source: "cache"};
 
-  // chunk at blank lines, max ~4000 chars per chunk (DeepL limit per field is much higher but be polite)
+  // chunk at blank lines, max ~4000 chars per chunk
   const paras = text.split(/\n{2,}/);
   const chunks = [];
   let cur = "";
@@ -57,17 +67,22 @@ async function translateText(text, sourceLang) {
   const translated = [];
   for (const chunk of chunks) {
     let result, usedSource;
-    try {
-      result = await translateDeepL(chunk, sourceLang);
-      usedSource = "DeepL";
-    } catch(e) {
-      console.warn("DeepL failed, trying MyMemory:", e.message);
+    if (engine === "google") {
+      result = await translateGoogle(chunk, sourceLang);
+      usedSource = "Google Translate";
+    } else {
       try {
-        result = await translateMyMemory(chunk, sourceLang);
-        usedSource = "MyMemory";
-      } catch(e2) {
-        result = `[Translation failed: ${e2.message}]`;
-        usedSource = "error";
+        result = await translateDeepL(chunk, sourceLang);
+        usedSource = "DeepL";
+      } catch(e) {
+        console.warn("DeepL failed, trying MyMemory:", e.message);
+        try {
+          result = await translateMyMemory(chunk, sourceLang);
+          usedSource = "MyMemory";
+        } catch(e2) {
+          result = `[Translation failed: ${e2.message}]`;
+          usedSource = "error";
+        }
       }
     }
     translated.push({text: result, source: usedSource});
@@ -460,7 +475,7 @@ async function renderBook(slug){
   const dlActs = `<div class="detail-acts">
       <button id="printBtn"><i class="fa-solid fa-print fa-inline"></i>Print / PDF</button>
       ${hostedFiles.length?`<button id="dlItemBtn"><i class="fa-solid fa-download fa-inline"></i>Download file${hostedFiles.length>1?'s ('+hostedFiles.length+')':''}</button>`:""}
-      ${needsTranslation?`<button id="txBtn"><i class="fa-solid fa-language fa-inline"></i>Translate to English</button>`:""}
+      ${needsTranslation?`<span class="tx-row"><button id="txBtn"><i class="fa-solid fa-language fa-inline"></i>Translate to English</button><select id="txSrc" title="Translation source"><option value="deepl">DeepL + MyMemory</option><option value="google" class="tx-google-opt">Google Translate ⚠</option></select></span>`:""}
     </div>`;
 
   el("list").innerHTML = `
@@ -513,19 +528,26 @@ async function renderBook(slug){
     txb.addEventListener("click", async () => {
       const contentEl = el("list").querySelector(".content");
       if(!contentEl){ txb.textContent = "No text to translate"; txb.disabled=true; return; }
-      // check if already showing translated version
+      // toggle back to original
       if(txb.dataset.translated === "1") {
         contentEl.innerHTML = contentHtml;
         txb.innerHTML = `<i class="fa-solid fa-language fa-inline"></i>Translate to English`;
         txb.dataset.translated = "0";
         return;
       }
+      const engine = (document.getElementById("txSrc") || {}).value || "deepl";
+      // explicit Google consent gate
+      if(engine === "google") {
+        const ok = confirm("⚠ Google Translate will send this text to Google's servers.\n\nAre you sure you want to use Google Translate?");
+        if(!ok) return;
+      }
       txb.disabled = true;
       txb.innerHTML = `<i class="fa-solid fa-spinner fa-spin fa-inline"></i>Translating...`;
       try {
-        const {text: translated, source} = await translateText(b.body || contentEl.innerText, b.language);
+        const {text: translated, source} = await translateText(b.body || contentEl.innerText, b.language, engine);
         contentEl.innerHTML = mdToHtml(translated);
-        const badge = `<div class="tx-badge"><i class="fa-solid fa-language fa-inline"></i>Translated to English via ${source}</div>`;
+        const googleNote = source.includes("Google") ? " · <strong>your text was sent to Google</strong>" : "";
+        const badge = `<div class="tx-badge"><i class="fa-solid fa-language fa-inline"></i>Translated to English via ${source}${googleNote}</div>`;
         contentEl.insertAdjacentHTML("afterbegin", badge);
         txb.innerHTML = `<i class="fa-solid fa-rotate-left fa-inline"></i>Show original (${langName})`;
         txb.dataset.translated = "1";
