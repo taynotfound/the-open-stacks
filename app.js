@@ -159,10 +159,10 @@ function mdToHtml(md){
     if(!t) return "";
     const h = t.match(/^(#{1,4})\s+(.*)/);
     if(h) return `<h${h[1].length+1}>${esc(h[2])}</h${h[1].length+1}>`;
-    // image ![alt](url)
-    t = t.replace(/!\[[^\]]*\]\((https?:\/\/[^)\s]+)\)/g,(m,u)=>`<img class="inl" loading="lazy" src="${esc(u)}" alt="">`);
-    // links [text](url)
-    t = t.replace(/\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g,(m,tx,u)=>`<a href="${esc(u)}" target="_blank" rel="noopener noreferrer">${esc(tx)}</a>`);
+    // image ![alt](url) or ![alt](<url>)
+    t = t.replace(/!\[[^\]]*\]\(<?(https?:\/\/[^)\s>]+)>?\)/g,(m,u)=>`<img class="inl" loading="lazy" src="${esc(u)}" alt="">`);
+    // links [text](url) or [text](<url>)
+    t = t.replace(/\[([^\]]+)\]\(<?(https?:\/\/[^)\s>]+)>?\)/g,(m,tx,u)=>`<a href="${esc(u)}" target="_blank" rel="noopener noreferrer">${esc(tx)}</a>`);
     if(/^<img/.test(t)) return `<p class="imgwrap">${t}</p>`;
     return `<p>${t.replace(/\n/g,"<br>")}</p>`;
   }).join("");
