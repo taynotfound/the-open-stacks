@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://the-open-stacks-swart.vercel.app/sitemap.xml
+Sitemap: https://theopenstacks.apolochees.me/sitemap.xml

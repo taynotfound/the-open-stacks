@@ -6,7 +6,7 @@ const OWNER = "taynotfound", REPO = "open-stacks-library", BRANCH = "main";
 const API = `https://api.github.com/repos/${OWNER}/${REPO}`;
 const RAW = `https://raw.githubusercontent.com/${OWNER}/${REPO}/${BRANCH}`;
 const ZIPBALL = `https://github.com/${OWNER}/${REPO}/archive/refs/heads/${BRANCH}.zip`;
-const ORIGIN = (typeof location!=="undefined" && location.origin && location.origin.startsWith("http")) ? location.origin : "https://the-open-stacks-swart.vercel.app";
+const ORIGIN = (typeof location!=="undefined" && location.origin && location.origin.startsWith("http")) ? location.origin : "https://theopenstacks.apolochees.me";
 
 const el = id => document.getElementById(id);
 let books = [], fState = "all", fCat = null, bySlug = {};

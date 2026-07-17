@@ -4,7 +4,7 @@ or wire into CI. Lists home + stats + contribute + every /book/<slug> item."""
 import json, html, urllib.request
 from urllib.parse import quote
 
-BASE = "https://the-open-stacks-swart.vercel.app"
+BASE = "https://theopenstacks.apolochees.me"
 IDX = "https://raw.githubusercontent.com/taynotfound/open-stacks-library/main/index.json"
 
 d = json.load(urllib.request.urlopen(IDX, timeout=60))
