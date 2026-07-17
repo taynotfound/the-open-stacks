@@ -147,12 +147,27 @@ border:1px solid var(--bd);border-radius:9px;color:var(--mut);font-weight:600;fo
   padding:1px 6px;font-size:.9em;font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
 .content hr{border:0;border-top:1px solid var(--bd);margin:28px 0}
 .content sup.fnref{color:#f97316;font-size:.72em;font-weight:600;padding:0 1px}
+.toc{margin:18px 0;border:1px solid var(--bd);border-radius:8px;background:var(--surf);
+  padding:6px 14px;max-width:760px}
+.toc summary{cursor:pointer;font-weight:600;color:var(--tx);padding:6px 0;list-style:none;user-select:none}
+.toc summary::-webkit-details-marker{display:none}
+.toc summary::before{content:"\25B8";color:#f97316;margin-right:8px;display:inline-block;transition:transform .15s}
+.toc[open] summary::before{transform:rotate(90deg)}
+.toc ul{list-style:none;margin:4px 0 10px;padding:0;max-height:340px;overflow:auto}
+.toc li{margin:0}
+.toc li a{display:block;padding:4px 8px;color:var(--mut);text-decoration:none;border-radius:5px;font-size:.94em;border-left:2px solid transparent}
+.toc li a:hover{color:var(--tx);background:var(--surf2);border-left-color:#f97316}
+.toc .toc-l3 a{padding-left:24px;font-size:.9em}
+.toc .toc-l4 a{padding-left:40px;font-size:.88em}
+.content h2[id],.content h3[id],.content h4[id]{scroll-margin-top:70px}
 .outlinks{margin:8px 0 20px;padding-left:20px;line-height:1.9}
 .outlinks a{word-break:break-word}
 .reader{border:1px solid var(--bd);border-radius:8px;overflow:hidden;background:#fff;margin:12px 0}
 .reader iframe{width:100%;height:78vh;border:0;display:block}
 footer{color:var(--mut);font-size:12px;text-align:center;padding:40px 20px;border-top:1px solid var(--bd);line-height:1.8}
 footer .red{color:var(--red)}
+footer .k161{display:inline-block;margin-top:10px;letter-spacing:.04em;color:var(--tx);opacity:.85}
+footer .k161 strong{color:#f97316;font-weight:700}
 /* ---- stats + contribute pages ---- */
 .stath1{font-size:30px;font-weight:800;letter-spacing:-.02em;margin:16px 0 8px}
 .stath2{font-size:19px;font-weight:700;margin:34px 0 6px}
@@ -222,8 +237,9 @@ code{background:var(--surf2);border:1px solid var(--bd);border-radius:5px;paddin
 <span class="red">☭ ⚑ Ⓐ</span> Solidarity forever. A living mirror for preservation and free access.<br>
 Sources include <a href="https://libcom.org/book">libcom.org</a>, <a href="https://www.gutenberg.org">Project Gutenberg</a>, <a href="https://gutenberg.net.au">Gutenberg AU</a>, <a href="https://www.marxists.org">Marxists.org</a> and more. New files pushed to the repo appear here automatically.<br>
 Source: <a href="https://github.com/taynotfound/open-stacks-library">github.com/taynotfound/open-stacks-library</a><br>
-Texts remain © their authors / under each source's terms. Take what you need, give what you can.
+Texts remain © their authors / under each source's terms. Take what you need, give what you can.<br>
+<span class="k161">Brought to you by <strong>Kommando 161</strong> <span class="red">⚑</span></span>
 </footer>
-<script src="/app.js?v=21"></script>
+<script src="/app.js?v=22"></script>
 </body>
 </html>

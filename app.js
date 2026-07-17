@@ -174,6 +174,19 @@ function mdInline(s){
   s = s.replace(/\[(\d{1,3})\]/g, '<sup class="fnref">$1</sup>');
   return s;
 }
+function headSlug(s){
+  return "h-" + String(s).toLowerCase().replace(/<[^>]+>/g,"").replace(/[^\w\s-]/g,"").trim().replace(/\s+/g,"-").slice(0,60);
+}
+// build a table-of-contents from rendered content HTML (h2/h3 with ids)
+function buildTOC(contentHtml){
+  const heads = [...contentHtml.matchAll(/<h([234]) id="([^"]+)">(.*?)<\/h[234]>/g)]
+    .map(m=>({lv:+m[1], id:m[2], txt:m[3].replace(/<[^>]+>/g,"").trim()}))
+    .filter(h=>h.txt);
+  if(heads.length < 3) return "";  // only worth it for long, multi-chapter texts
+  const min = Math.min(...heads.map(h=>h.lv));
+  const items = heads.map(h=>`<li class="toc-l${h.lv-min+2}"><a href="#${h.id}">${esc(h.txt)}</a></li>`).join("");
+  return `<details class="toc" open><summary><i class="fa-solid fa-list-ul fa-inline"></i>Contents (${heads.length})</summary><ul>${items}</ul></details>`;
+}
 function mdToHtml(md){
   if(!md) return "";
   // 1) extract links + images to placeholder tokens BEFORE escaping so their
@@ -200,7 +213,7 @@ function mdToHtml(md){
 
     // heading
     const h = t.trim().match(/^(#{1,6})\s+(.*)$/);
-    if(h){ const lv=Math.min(h[1].length+1,6); out.push(`<h${lv}>${restore(mdInline(esc(h[2].trim())))}</h${lv}>`); continue; }
+    if(h){ const lv=Math.min(h[1].length+1,6); const txt=restore(mdInline(esc(h[2].trim()))); const id=headSlug(h[2].trim()); out.push(`<h${lv} id="${id}">${txt}</h${lv}>`); continue; }
 
     // blockquote (one or more > lines)
     if(/^\s*>/.test(t)){
@@ -288,7 +301,11 @@ async function renderBook(slug){
   const tags = b.tags.map(t=>`<span class="tag">${esc(t)}</span>`).join("");
   const imgs = b.images.length ? `<div class="gallery${gallery?' big':''}">${b.images.map(u=>`<a href="${esc(u)}" target="_blank" rel="noopener noreferrer"><img loading="lazy" src="${esc(u)}" alt=""></a>`).join("")}</div>` : "";
   const outlinks = b.links.length ? `<h3 class="dh">Links from this page</h3><ul class="outlinks">${b.links.map(l=>`<li><a href="${esc(l.url)}" target="_blank" rel="noopener noreferrer">${esc(l.text||l.url)} <i class="fa-solid fa-arrow-up-right-from-square"></i></a></li>`).join("")}</ul>` : "";
-  const content = b.body && b.body.length>40 ? `<div class="content">${mdToHtml(b.body)}</div>` : "";
+  const contentHtml = b.body && b.body.length>40 ? mdToHtml(b.body) : "";
+  const content = contentHtml ? `<div class="content">${contentHtml}</div>` : "";
+  const toc = contentHtml ? buildTOC(contentHtml) : "";
+  // downloads block, reused at top (and we drop the old bottom one)
+  const dlBlock = files ? `<h3 class="dh">Downloads</h3><div class="dlfiles">${files}</div>` : "";
   // self-hosted HTML files -> read inline. raw/jsDelivr force text/plain, so we fetch and inject via srcdoc (renders as HTML).
   const htmlFile = b.files.find(f=>f.hosted && /\.html?($|\?|#)/i.test((f.url||"")+ " " + (f.name||"")) || (f.hosted && /html/i.test(f.type||"")));
   const reader = htmlFile ? `<h3 class="dh">Read here</h3><div class="reader"><iframe id="htmlReader" loading="lazy" title="${esc(b.title)}" sandbox="allow-popups allow-popups-to-escape-sandbox"></iframe></div><p class="cmeta"><a href="${esc(htmlFile.url)}" target="_blank" rel="noopener noreferrer">Open raw file in new tab <i class="fa-solid fa-arrow-up-right-from-square"></i></a></p>` : "";
@@ -307,10 +324,12 @@ async function renderBook(slug){
       </div>
     </div>
     ${b.desc?`<p class="desc">${esc(b.desc)}</p>`:""}
+    ${dlBlock}
     ${imgs}
+    ${toc}
     ${reader}
     ${content}
-    ${files?`<h3 class="dh">Downloads</h3><div class="dlfiles">${files}</div>`:(b.files.length===0&&!imgs&&!content?`<p class="cmeta">No files mirrored yet.</p>`:"")}
+    ${(!dlBlock && b.files.length===0 && !imgs && !content)?`<p class="cmeta">No files mirrored yet.</p>`:""}
     ${outlinks}
     <p class="orig"><a href="${esc(b.source)}" target="_blank" rel="noopener noreferrer">View at original source (${esc(srcName)}) <i class="fa-solid fa-arrow-up-right-from-square"></i></a></p>`;
   if (htmlFile) {
