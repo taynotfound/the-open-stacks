@@ -11,6 +11,8 @@
 <meta name="robots" content="index,follow">
 <meta name="author" content="The Open Stacks">
 <link rel="canonical" href="https://theopenstacks.apolochees.me/">
+<link rel="alternate" type="application/rss+xml" title="The Open Stacks - recently added" href="https://raw.githubusercontent.com/taynotfound/open-stacks-library/main/feed.xml">
+<link rel="alternate" type="application/atom+xml" title="The Open Stacks OPDS catalog" href="https://raw.githubusercontent.com/taynotfound/open-stacks-library/main/opds.xml">
 <!-- Open Graph -->
 <meta property="og:type" content="website">
 <meta property="og:title" content="The Open Stacks - a growing anti-censorship library">
@@ -78,6 +80,25 @@ padding:4px 11px;border-radius:16px;font-size:12px;cursor:pointer;transition:.15
 .cats button:hover{border-color:var(--grn);color:var(--tx)}
 .cats button.on{border-color:var(--grn);color:var(--grn);background:rgba(93,176,117,.1)}
 .count{color:var(--mut);font-size:13px;margin-bottom:16px}
+/* recently added strip */
+.recent{margin:2px 0 22px}
+.recent h3{font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--mut);font-weight:700;margin:0 0 10px;display:flex;align-items:center;gap:8px}
+.recent h3 .fa-inline{color:var(--red)}
+.recentrow{display:flex;gap:10px;overflow-x:auto;padding-bottom:6px;scrollbar-width:thin}
+.recentrow a{flex:0 0 auto;width:132px;background:var(--surf);border:1px solid var(--bd);border-radius:10px;overflow:hidden;color:var(--tx);transition:.15s}
+.recentrow a:hover{border-color:var(--red);text-decoration:none;transform:translateY(-2px)}
+.recentrow .rc{width:100%;aspect-ratio:3/4;object-fit:cover;background:var(--surf2);display:block}
+.recentrow .rt{padding:8px 9px;font-size:11.5px;font-weight:600;line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.recentrow .rnew{display:block;font-size:9px;color:var(--red);font-weight:700;letter-spacing:.05em;padding:0 9px}
+/* bookmark toggle on cards + detail */
+.bmk{background:none;border:0;color:var(--mut);cursor:pointer;font-size:15px;padding:2px 6px;transition:.15s;font-family:inherit}
+.bmk:hover{color:var(--red)}
+.bmk.on{color:var(--red)}
+.cardbmk{position:absolute;top:6px;right:6px;background:rgba(18,15,14,.75);border-radius:6px;z-index:2}
+.detailbmk{display:inline-flex;align-items:center;gap:6px;margin-top:12px;padding:6px 12px;border:1px solid var(--bd);border-radius:8px;font-size:13px;font-weight:600}
+.detailbmk:hover{border-color:var(--red)}
+.detailbmk.on{border-color:var(--red);background:rgba(248,113,113,.08)}
+.rp{color:var(--grn);font-weight:600}
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:16px}
 .card{position:relative;display:flex;flex-direction:column;background:var(--surf);border:1px solid var(--bd);
 border-radius:12px;overflow:hidden;color:var(--tx);box-shadow:0 1px 2px rgba(0,0,0,.3);
@@ -292,10 +313,12 @@ font-weight:600;cursor:pointer;transition:.15s;font-family:inherit}
 <button data-f="full"><span class="dot full"></span>Full copy</button>
 <button data-f="partial"><span class="dot partial"></span>Partial</button>
 <button data-f="none"><span class="dot none"></span>Linked only</button>
+<button data-f="saved"><i class="fa-solid fa-bookmark fa-inline"></i>Saved</button>
 </div>
 <div class="cats" id="cats"></div>
 <div class="count" id="count"></div>
 </div>
+<div class="recent" id="recent" style="display:none"></div>
 <div id="list"><div class="loading">Fetching the library…</div></div>
 </div>
 
@@ -324,6 +347,8 @@ font-weight:600;cursor:pointer;transition:.15s;font-family:inherit}
 <a href="#/stats">Stats &amp; holdings</a>
 <a href="#/contribute">Contribute a text</a>
 <a href="https://github.com/taynotfound/open-stacks-library" target="_blank" rel="noopener noreferrer">Data repo (GitHub)</a>
+<a href="https://raw.githubusercontent.com/taynotfound/open-stacks-library/main/feed.xml" target="_blank" rel="noopener noreferrer">RSS feed (recently added)</a>
+<a href="https://raw.githubusercontent.com/taynotfound/open-stacks-library/main/opds.xml" target="_blank" rel="noopener noreferrer">OPDS catalog (e-readers)</a>
 <a href="#" id="dlallfoot">Download everything (.zip)</a>
 </div>
 <div class="foot-col">
@@ -334,6 +359,7 @@ font-weight:600;cursor:pointer;transition:.15s;font-family:inherit}
 <div class="foot-legal">Texts remain © their authors / under each source's terms. We keep copies of what's at risk. Take what you need, give what you can.</div>
 <span class="k161">Brought to you by <strong>Kommando 161</strong> <span class="red">⚑</span></span>
 </footer>
-<script src="/app.js?v=26"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/lunr.js/2.3.9/lunr.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script src="/app.js?v=27"></script>
 </body>
 </html>

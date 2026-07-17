@@ -10,6 +10,38 @@ const ORIGIN = (typeof location!=="undefined" && location.origin && location.ori
 
 const el = id => document.getElementById(id);
 let books = [], fState = "all", fCat = null, bySlug = {};
+
+// ---- bookmarks (localStorage) ----
+const BMK_KEY = "os_bookmarks";
+let bookmarks = new Set();
+try{ bookmarks = new Set(JSON.parse(localStorage.getItem(BMK_KEY)||"[]")); }catch(e){}
+function isBmk(slug){ return bookmarks.has(slug); }
+function toggleBmk(slug){
+  if(bookmarks.has(slug)) bookmarks.delete(slug); else bookmarks.add(slug);
+  try{ localStorage.setItem(BMK_KEY, JSON.stringify([...bookmarks])); }catch(e){}
+  return bookmarks.has(slug);
+}
+// ---- reading progress (localStorage) ----
+const RP_KEY = "os_progress";
+let progress = {};
+try{ progress = JSON.parse(localStorage.getItem(RP_KEY)||"{}"); }catch(e){}
+function saveProgress(slug, pct){ progress[slug]=pct; try{ localStorage.setItem(RP_KEY, JSON.stringify(progress)); }catch(e){} }
+
+// ---- Lunr full-text index (built lazily from search-index.json) ----
+let lunrIdx = null, lunrDocs = {}, lunrLoading = null;
+function loadLunr(){
+  if(lunrIdx || lunrLoading) return lunrLoading || Promise.resolve();
+  if(typeof lunr==="undefined") return Promise.resolve();
+  lunrLoading = fetch(`${RAW}/search-index.json`).then(r=>r.ok?r.json():null).then(data=>{
+    if(!data || !data.docs) return;
+    lunrIdx = lunr(function(){
+      this.ref("slug"); this.field("title",{boost:6}); this.field("author",{boost:3});
+      this.field("tags",{boost:2}); this.field("text");
+      data.docs.forEach(d=>{ lunrDocs[d.slug]=d; this.add(d); });
+    });
+  }).catch(()=>{});
+  return lunrLoading;
+}
 const PAGE = 100;   // books rendered per page; search still indexes ALL of them
 let shown = PAGE, lastView = [];
 function resetAndRender(){ shown = PAGE; renderList(); }
@@ -107,13 +139,15 @@ function itemPath(b){ return `/${itemKind(b)}/${encodeURIComponent(b.slug)}`; }
 function itemHash(b){ return itemPath(b); }
 
 function cardHTML(b){
+  const pct = progress[b.slug];
   return `<a class="card" href="${itemHash(b)}">
       ${coverEl(b)}
+      <button class="bmk cardbmk${isBmk(b.slug)?' on':''}" data-bmk="${esc(b.slug)}" title="Save" aria-label="Save"><i class="fa-${isBmk(b.slug)?'solid':'regular'} fa-bookmark"></i></button>
       ${b.atRisk?`<span class="risk"><i class="fa-solid fa-triangle-exclamation fa-inline"></i>at risk</span>`:""}
       ${b.pageType==="gallery"?`<span class="gtag"><i class="fa-solid fa-images fa-inline"></i>gallery</span>`:""}
       <div class="cardbody">
         <div class="ctitle"><span class="dot ${b.state}"></span>${esc(b.title)}</div>
-        <div class="cmeta">${b.author?esc(b.author)+" · ":""}${b.files.length} file(s)</div>
+        <div class="cmeta">${b.author?esc(b.author)+" · ":""}${b.files.length} file(s)${pct?` · <span class="rp">${pct}% read</span>`:""}</div>
       </div>
     </a>`;
 }
@@ -124,14 +158,41 @@ function skeletonHTML(){
 let io = null;
 function renderList(){
   setSEO("The Open Stacks - an anti-censorship library","Host what they'd erase. A growing, multi-source archive of books and articles at risk of being taken down.", location.href.split("#")[0]);
-  const q = el("q").value.toLowerCase();
-  const view = books.filter(b=>{
-    if(fState==="risk"){ if(!b.atRisk) return false; }
+  const q = el("q").value.toLowerCase().trim();
+  // Recently-added strip only makes sense on the unfiltered home view.
+  const rc = el("recent");
+  if(rc) rc.style.display = (!q && fState==="all" && !fCat) ? "" : "none";
+  // Full-text rank set (Lunr) - only when a query is present AND index is ready.
+  let ftRank = null;
+  if(q && lunrIdx){
+    try{
+      const hits = lunrIdx.search(q.split(/\s+/).map(t=>t.length>1?t+"*":t).join(" "));
+      ftRank = new Map(hits.map((h,i)=>[h.ref, i]));
+    }catch(e){ ftRank = null; }
+  }
+  let view = books.filter(b=>{
+    if(fState==="saved"){ if(!isBmk(b.slug)) return false; }
+    else if(fState==="risk"){ if(!b.atRisk) return false; }
     else if(fState!=="all" && b.state!==fState) return false;
     if(fCat && b.category!==fCat) return false;
-    if(q){ if(!(b.title+" "+b.author+" "+b.tags.join(" ")).toLowerCase().includes(q)) return false; }
+    if(q){
+      // Lunr full-text match (title/author/tags/BODY) OR cheap metadata substring fallback.
+      const metaHit = (b.title+" "+b.author+" "+b.tags.join(" ")).toLowerCase().includes(q);
+      if(ftRank){ if(!ftRank.has(b.slug) && !metaHit) return false; }
+      else if(!metaHit) return false;
+    }
     return true;
-  }).sort((a,b)=>a.title.toLowerCase()<b.title.toLowerCase()?-1:1);
+  });
+  if(ftRank){
+    // rank by full-text relevance; metadata-only hits sink to the bottom, then alpha
+    view.sort((a,b)=>{
+      const ra = ftRank.has(a.slug)?ftRank.get(a.slug):1e9;
+      const rb = ftRank.has(b.slug)?ftRank.get(b.slug):1e9;
+      return ra!==rb ? ra-rb : (a.title.toLowerCase()<b.title.toLowerCase()?-1:1);
+    });
+  } else {
+    view.sort((a,b)=>a.title.toLowerCase()<b.title.toLowerCase()?-1:1);
+  }
   lastView = view;
   // paginate: render up to `shown` (grows by PAGE), but search still indexed ALL books above
   const page = view.slice(0, shown);
@@ -335,6 +396,7 @@ async function renderBook(slug){
         <div class="cmeta">in <a href="#/">${esc(b.category)}</a>${gallery?' · <i class=\"fa-solid fa-images\"></i> image page':""}</div>
         <div class="cmeta srcline">source: <a href="${esc(b.source)}" target="_blank" rel="noopener noreferrer">${esc(srcName)}</a></div>
         <div class="tags">${tags}</div>
+        <button class="bmk detailbmk${isBmk(b.slug)?' on':''}" data-bmk="${esc(b.slug)}"><i class="fa-${isBmk(b.slug)?'solid':'regular'} fa-bookmark fa-inline"></i>${isBmk(b.slug)?'Saved':'Save'}</button>
       </div>
     </div>
     ${dlActs}
@@ -368,6 +430,22 @@ async function renderBook(slug){
   });
   // gallery lightbox
   if(b.images.length) initLightbox(b.images, b.title);
+  // reading-progress: track scroll depth through readable content, persist %.
+  if(contentHtml){
+    let rpTick = false;
+    const trackRP = ()=>{
+      rpTick = false;
+      const doc = document.documentElement;
+      const max = doc.scrollHeight - doc.clientHeight;
+      const pct = max>0 ? Math.min(100, Math.round(doc.scrollTop / max * 100)) : 0;
+      if(pct > (progress[b.slug]||0) || pct>=98) saveProgress(b.slug, pct);
+    };
+    window.__rpHandler && window.removeEventListener("scroll", window.__rpHandler);
+    window.__rpHandler = ()=>{ if(!rpTick){ rpTick=true; requestAnimationFrame(trackRP); } };
+    window.addEventListener("scroll", window.__rpHandler, {passive:true});
+  } else if(window.__rpHandler){
+    window.removeEventListener("scroll", window.__rpHandler); window.__rpHandler=null;
+  }
   window.scrollTo(0,0);
 }
 
@@ -554,13 +632,30 @@ function route(){
   const path = location.pathname.replace(/\/+$/,"");
   const h = location.hash;
   const controls = el("controls");
-  const hideControls = () => { controls.style.display="none"; const more=el("more"); if(more) more.style.display="none"; };
+  const hideControls = () => { controls.style.display="none"; const more=el("more"); if(more) more.style.display="none"; const rc=el("recent"); if(rc) rc.style.display="none"; };
   const mh = h.match(/#\/(?:book|gallery)\/(.+)$/);
   const mp = path.match(/^\/(?:book|gallery)\/(.+)$/);
   if(mh || mp){ hideControls(); renderBook(decodeURIComponent(mh?mh[1]:mp[1])); }
   else if(h==="#/stats" || path==="/stats"){ hideControls(); renderStats(); }
   else if(h==="#/contribute" || path==="/contribute"){ hideControls(); renderContribute(); }
   else { controls.style.display=""; clearItemJsonLd(); setSEO("The Open Stacks - a growing anti-censorship library", "A growing, multi-source library preserving radical, political, and at-risk books. Antifascist, anti-capitalist, pro free speech. Free downloads, no paywalls.", ORIGIN+"/"); renderList(); }
+}
+
+// horizontal "Recently added" strip, shown above the grid on the home view only.
+// Uses the `added` timestamp baked into index.json by build_index.py (newest-first).
+function renderRecent(){
+  const host = el("recent");
+  if(!host) return;
+  const recent = [...books].sort((a,b)=>(b.added||0)-(a.added||0)).slice(0,14);
+  if(!recent.length){ host.style.display="none"; return; }
+  host.innerHTML = `<h3><i class="fa-solid fa-seedling fa-inline"></i>Recently added</h3>`
+    + `<div class="recentrow">` + recent.map(b=>{
+      const cov = b.cover
+        ? `<img class="rc" src="${esc(b.cover)}" alt="" loading="lazy" onerror="this.style.visibility='hidden'">`
+        : `<div class="rc"></div>`;
+      return `<a href="${itemHash(b)}"><span class="rnew">NEW</span>${cov}<div class="rt">${esc(b.title)}</div></a>`;
+    }).join("") + `</div>`;
+  host.style.display="";
 }
 
 function buildCats(){
@@ -597,7 +692,24 @@ function buildCats(){
     const total = books.reduce((n,b)=>n+b.files.length,0);
     el("sub").innerHTML = `${books.length} items · <span class="badge">${hosted}</span>/${total} files self-hosted · <a href="${API.replace('api.github.com/repos','github.com')}/commit/${sha}" target="_blank" rel="noopener noreferrer">@${sha.slice(0,7)}</a>`;
     buildCats();
-    el("q").addEventListener("input", resetAndRender);
+    renderRecent();
+    // typing triggers a lazy Lunr build (once); re-render when the index lands
+    el("q").addEventListener("input", ()=>{
+      const q = el("q").value.trim();
+      if(q && !lunrIdx){ loadLunr().then(()=>{ if(el("q").value.trim()) resetAndRender(); }); }
+      resetAndRender();
+    });
+    // bookmark toggle (delegated) - works on cards and detail pages
+    document.addEventListener("click", (e)=>{
+      const bt = e.target.closest && e.target.closest(".bmk[data-bmk]");
+      if(!bt) return;
+      e.preventDefault(); e.stopPropagation();
+      const on = toggleBmk(bt.dataset.bmk);
+      bt.classList.toggle("on", on);
+      const ic = bt.querySelector("i");
+      if(ic) ic.className = `fa-${on?"solid":"regular"} fa-bookmark`;
+      if(fState==="saved") resetAndRender();
+    });
     document.querySelectorAll(".filters button").forEach(btn=>btn.addEventListener("click",()=>{
       document.querySelectorAll(".filters button").forEach(x=>x.classList.remove("on"));
       btn.classList.add("on"); fState=btn.dataset.f; resetAndRender();
