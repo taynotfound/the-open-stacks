@@ -6,6 +6,7 @@ const OWNER = "taynotfound", REPO = "open-stacks-library", BRANCH = "main";
 const API = `https://api.github.com/repos/${OWNER}/${REPO}`;
 const RAW = `https://raw.githubusercontent.com/${OWNER}/${REPO}/${BRANCH}`;
 const ZIPBALL = `https://github.com/${OWNER}/${REPO}/archive/refs/heads/${BRANCH}.zip`;
+const ORIGIN = (typeof location!=="undefined" && location.origin && location.origin.startsWith("http")) ? location.origin : "https://the-open-stacks-swart.vercel.app";
 
 const el = id => document.getElementById(id);
 let books = [], fState = "all", fCat = null, bySlug = {};
@@ -180,12 +181,41 @@ function setSEO(title, desc, url){
   set('link[rel="canonical"]',"href",url);
 }
 
+// inject per-item structured data (JSON-LD) so each work is independently indexable
+function setItemJsonLd(b, url){
+  let s = document.getElementById("item-jsonld");
+  if(!s){ s=document.createElement("script"); s.type="application/ld+json"; s.id="item-jsonld"; document.head.appendChild(s); }
+  const isGallery = b.pageType==="gallery";
+  const data = {
+    "@context":"https://schema.org",
+    "@type": isGallery ? "ImageGallery" : (b.files && b.files.length ? "Book" : "Article"),
+    "name": b.title,
+    "headline": b.title,
+    "url": url,
+    "mainEntityOfPage": url,
+    "description": b.desc || `${b.title}${b.author?" by "+b.author:""}, archived on The Open Stacks.`,
+    "isPartOf": {"@type":"CollectionPage","name":"The Open Stacks","url":ORIGIN+"/"},
+    "publisher": {"@type":"Organization","name":"The Open Stacks","url":ORIGIN+"/"},
+    "genre": b.category,
+    "keywords": (b.tags||[]).join(", ")
+  };
+  if(b.author) data.author = {"@type":"Person","name":b.author};
+  if(b.sourceName) data.sourceOrganization = {"@type":"Organization","name":b.sourceName};
+  if(b.source) data.sameAs = b.source;
+  const dl = (b.files||[]).find(f=>f.hosted);
+  if(dl) data.associatedMedia = {"@type":"MediaObject","contentUrl":dl.url};
+  Object.keys(data).forEach(k=>{ if(data[k]===undefined||data[k]==="") delete data[k]; });
+  s.textContent = JSON.stringify(data);
+}
+function clearItemJsonLd(){ const s=document.getElementById("item-jsonld"); if(s) s.textContent="{}"; }
+
 async function renderBook(slug){
   const b = bySlug[slug];
   if(!b){ el("list").className=""; el("list").innerHTML = `<div class="loading">Not found. <a href="#/"><i class="fa-solid fa-arrow-left fa-inline"></i>back</a></div>`; return; }
   await ensureBody(b);
-  const canon = location.href;
+  const canon = `${ORIGIN}/book/${encodeURIComponent(b.slug)}`;
   setSEO(`${b.title} - The Open Stacks`, b.desc || `${b.title}${b.author?" by "+b.author:""}, archived on The Open Stacks.`, canon);
+  setItemJsonLd(b, canon);
   el("list").className = "detail";
   const gallery = b.pageType==="gallery" || (b.images.length && !b.files.length);
   const srcName = b.sourceName || (b.source.includes("libcom.org") ? "libcom.org" : (b.source.match(/\/\/([^\/]+)/)||[])[1] || "source");
@@ -377,14 +407,17 @@ matters. No fabricated quotes, no fake claims.
 }
 
 function route(){
+  // support both clean paths (/book/slug, for crawlers via vercel rewrite) and hash (#/book/slug, in-app nav)
+  const path = location.pathname.replace(/\/+$/,"");
   const h = location.hash;
   const controls = el("controls");
   const hideControls = () => { controls.style.display="none"; const more=el("more"); if(more) more.style.display="none"; };
-  const m = h.match(/#\/book\/(.+)$/);
-  if(m){ hideControls(); renderBook(decodeURIComponent(m[1])); }
-  else if(h==="#/stats"){ hideControls(); renderStats(); }
-  else if(h==="#/contribute"){ hideControls(); renderContribute(); }
-  else { controls.style.display=""; renderList(); }
+  const mh = h.match(/#\/book\/(.+)$/);
+  const mp = path.match(/^\/book\/(.+)$/);
+  if(mh || mp){ hideControls(); renderBook(decodeURIComponent(mh?mh[1]:mp[1])); }
+  else if(h==="#/stats" || path==="/stats"){ hideControls(); renderStats(); }
+  else if(h==="#/contribute" || path==="/contribute"){ hideControls(); renderContribute(); }
+  else { controls.style.display=""; clearItemJsonLd(); setSEO("The Open Stacks - a growing anti-censorship library", "A growing, multi-source library preserving radical, political, and at-risk books. Antifascist, anti-capitalist, pro free speech. Free downloads, no paywalls.", ORIGIN+"/"); renderList(); }
 }
 
 function buildCats(){

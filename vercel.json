@@ -1,0 +1,15 @@
+{
+  "cleanUrls": true,
+  "trailingSlash": false,
+  "rewrites": [
+    { "source": "/book/:slug", "destination": "/index.html" },
+    { "source": "/stats", "destination": "/index.html" },
+    { "source": "/contribute", "destination": "/index.html" }
+  ],
+  "headers": [
+    {
+      "source": "/sitemap.xml",
+      "headers": [{ "key": "Content-Type", "value": "application/xml" }]
+    }
+  ]
+}
