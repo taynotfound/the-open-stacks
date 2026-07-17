@@ -250,6 +250,20 @@ footer .k161 strong{color:#f97316;font-weight:700}
 .stattrack{flex:1;height:12px;background:var(--surf2);border-radius:6px;overflow:hidden}
 .statfill{height:100%;background:linear-gradient(90deg,var(--red2),var(--red));border-radius:6px;min-width:2px;transition:width .5s ease}
 .statval{flex:0 0 120px;font-size:13px;color:var(--mut);font-variant-numeric:tabular-nums}.statof{font-size:11px;opacity:.6}
+.libproggroup{display:flex;flex-direction:column;gap:8px}
+.libprogrow{display:grid;grid-template-columns:120px 1fr 130px;align-items:center;gap:10px}
+.libprog-label{font-size:13px;color:var(--tx);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.libprog-track{position:relative;height:10px;background:var(--s2);border-radius:6px;overflow:visible;display:flex;align-items:center}
+.libprog-fill{height:100%;border-radius:6px;transition:width .4s}
+.libprog-pct{position:absolute;right:-36px;font-size:11px;font-weight:600;white-space:nowrap}
+.libprog-count{font-size:12px;color:var(--mut);font-variant-numeric:tabular-nums;text-align:right}
+.piewrap{display:flex;align-items:center;gap:32px;flex-wrap:wrap;padding:12px 0}
+.piesvg{flex-shrink:0}
+.pielegend{display:flex;flex-direction:column;gap:7px}
+.pielegrow{display:flex;align-items:center;gap:8px;font-size:13px}
+.piedot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.pielabel{color:var(--tx);flex:1}
+.piepct{color:var(--mut);font-variant-numeric:tabular-nums;font-size:12px;min-width:32px;text-align:right}
 .statcta{margin:34px 0 10px;padding:18px;background:var(--surf);border:1px solid var(--bd);border-left:3px solid var(--red);border-radius:10px}
 .statcta p{margin:0}
 .contribgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:14px;margin:20px 0}
@@ -403,6 +417,6 @@ font-weight:600;cursor:pointer;transition:.15s;font-family:inherit}
 <span class="k161">Brought to you by <strong>Kommando 161</strong> <span class="red">⚑</span></span>
 </footer>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/lunr.js/2.3.9/lunr.min.js" integrity="sha512-nmN0YBPEYPEtxhzj0L9XFNNkYNgWyJGMoYkOA16HcH8o58OBW3CdwbWexJlEj6FhRHt0enMBqTr4bXLfJKew==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-<script src="/app.js?v=36"></script>
+<script src="/app.js?v=37"></script>
 </body>
 </html>

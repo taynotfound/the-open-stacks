@@ -726,12 +726,64 @@ function renderStats(){
     const of = KNOWN_TOTALS[src];
     const pct = Math.min(100, Math.round(have / of * 100));
     const fill = pct >= 90 ? "var(--grn)" : pct >= 50 ? "var(--acc)" : "var(--mut)";
-    return `<div class="statrow librow">
-      <div class="statlabel">${esc(src)}</div>
-      <div class="stattrack"><div class="statfill" style="width:${pct}%;background:${fill}"></div></div>
-      <div class="statval">${have.toLocaleString()} <span class="statof">/ ~${of.toLocaleString()} (${pct}%)</span></div>
+    const label = src.replace(".anarchistlibraries.net","").replace("theanarchistlibrary.org","TAL (en)").replace("libcom.org","libcom").replace("CrimethInc.","CrimethInc");
+    return `<div class="libprogrow">
+      <div class="libprog-label">${esc(label)}</div>
+      <div class="libprog-track">
+        <div class="libprog-fill" style="width:${pct}%;background:${fill}"></div>
+        <span class="libprog-pct" style="color:${fill}">${pct}%</span>
+      </div>
+      <div class="libprog-count">${have.toLocaleString()} <span class="statof">/ ~${of.toLocaleString()}</span></div>
     </div>`;
   }).join("");
+
+  // Pie chart for source breakdown
+  const PIE_COLORS = ["#f97316","#fb923c","#fdba74","#4ade80","#34d399","#60a5fa","#a78bfa","#f472b6","#facc15","#94a3b8","#64748b","#475569"];
+  function makePie(entries) {
+    const total = entries.reduce((s,[,v])=>s+v,0);
+    if(!total) return "";
+    const R=110, CX=130, CY=130, r=R;
+    let angle = -Math.PI/2;
+    let slices = "";
+    let legend = "";
+    entries.forEach(([label,val],i) => {
+      const frac = val/total;
+      const a1 = angle, a2 = angle + frac*2*Math.PI;
+      const x1=CX+r*Math.cos(a1), y1=CY+r*Math.sin(a1);
+      const x2=CX+r*Math.cos(a2), y2=CY+r*Math.sin(a2);
+      const large = frac>0.5?1:0;
+      const col = PIE_COLORS[i%PIE_COLORS.length];
+      if(frac > 0.003) {
+        slices += \`<path d="M\${CX},\${CY} L\${x1.toFixed(1)},\${y1.toFixed(1)} A\${r},\${r} 0 \${large},1 \${x2.toFixed(1)},\${y2.toFixed(1)} Z" fill="\${col}" opacity="0.92"/>\`;
+      }
+      const pct = Math.round(frac*100);
+      if(pct >= 1) {
+        legend += \`<div class="pielegrow"><span class="piedot" style="background:\${col}"></span><span class="pielabel">\${label}</span><span class="piepct">\${pct}%</span></div>\`;
+      }
+      angle = a2;
+    });
+    return \`<div class="piewrap">
+      <svg width="260" height="260" viewBox="0 0 260 260" class="piesvg">
+        <circle cx="\${CX}" cy="\${CY}" r="\${r}" fill="#1b1917"/>
+        \${slices}
+        <circle cx="\${CX}" cy="\${CY}" r="52" fill="#131110"/>
+        <text x="\${CX}" y="\${CY}-6" text-anchor="middle" fill="#e9e5e1" font-size="18" font-weight="700" dy="0">\${total.toLocaleString()}</text>
+        <text x="\${CX}" y="\${CY}+14" text-anchor="middle" fill="#837b74" font-size="11" dy="20">items</text>
+      </svg>
+      <div class="pielegend">\${legend}</div>
+    </div>\`;
+  }
+  const topSrcs = Object.entries(bySrc).sort((a,b)=>b[1]-a[1]);
+  // Group small sources into "other"
+  const PIE_THRESHOLD = 0.02;
+  const srcTotal = topSrcs.reduce((s,[,v])=>s+v,0);
+  const pieSrcs = []; let otherCount = 0;
+  topSrcs.forEach(([k,v]) => {
+    if(v/srcTotal >= PIE_THRESHOLD) pieSrcs.push([k,v]);
+    else otherCount += v;
+  });
+  if(otherCount) pieSrcs.push(["other sources", otherCount]);
+  const pieHtml = makePie(pieSrcs);
   const typeRows = Object.entries(byType).sort((a,b)=>b[1]-a[1]).map(([k,v])=>[typeLabel[k]||esc(k),v]);
   const hostPct = totalFiles?Math.round(hostedFiles/totalFiles*100):0;
 
@@ -762,12 +814,12 @@ function renderStats(){
     <div class="statgroup">${bar(catRows)}</div>
 
     <h2 class="stath2">Library coverage</h2>
-    <p class="statnote">How much of each source library we've indexed so far. Scraping is ongoing — numbers update as the index rebuilds.</p>
-    <div class="statgroup">${libProgress}</div>
+    <p class="statnote">How much of each source library we've indexed so far. Scraping is ongoing.</p>
+    <div class="statgroup libproggroup">${libProgress}</div>
 
-    <h2 class="stath2">All sources</h2>
-    <p class="statnote">Every item credits where it came from.</p>
-    <div class="statgroup">${bar(srcRows)}</div>
+    <h2 class="stath2">Source breakdown</h2>
+    <p class="statnote">What proportion of the archive comes from each source.</p>
+    ${pieHtml}
 
     <div class="statcta">
       <p>See a gap? <a href="#/contribute">Add to the stacks <i class="fa-solid fa-arrow-right"></i></a></p>
