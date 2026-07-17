@@ -9,6 +9,7 @@ const ZIPBALL = `https://github.com/${OWNER}/${REPO}/archive/refs/heads/${BRANCH
 const ORIGIN = (typeof location!=="undefined" && location.origin && location.origin.startsWith("http")) ? location.origin : "https://theopenstacks.apolochees.me";
 const DEEPL_KEY = "REDACTED";
 const DEEPL_URL = "https://api-free.deepl.com/v2/translate";
+const TX_PROXY = "https://translate.taymaerz.de";
 
 const el = id => document.getElementById(id);
 let books = [], fState = "all", fCat = null, fLang = null, fSort = "alpha", bySlug = {};
@@ -18,14 +19,15 @@ const LANG_NAMES = {en:"English",de:"Deutsch",fr:"Francais",es:"Espanol",it:"Ita
 const TX_CACHE_PREFIX = "os_tx_";
 
 async function translateDeepL(text, sourceLang) {
-  const resp = await fetch(DEEPL_URL, {
+  const resp = await fetch(`${TX_PROXY}/translate/deepl`, {
     method: "POST",
-    headers: {"Content-Type": "application/x-www-form-urlencoded"},
-    body: new URLSearchParams({auth_key: DEEPL_KEY, text, source_lang: sourceLang.toUpperCase(), target_lang: "EN"})
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({text, sourceLang})
   });
-  if (!resp.ok) throw new Error(`DeepL ${resp.status}`);
+  if (!resp.ok) throw new Error(`DeepL proxy ${resp.status}`);
   const d = await resp.json();
-  return d.translations[0].text;
+  if (d.error) throw new Error(d.error);
+  return d.translated;
 }
 
 async function translateMyMemory(text, sourceLang) {
