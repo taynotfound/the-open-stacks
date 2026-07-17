@@ -477,9 +477,26 @@ async function renderBook(slug){
   const hostedFiles = b.files.filter(f=>f.hosted);
   const needsTranslation = b.language && b.language !== "en";
   // find any already-merged translations for this book (originalSlug === b.slug)
-  const existingTranslations = (window.__IDX||[]).filter(e => e.originalSlug === b.slug && e.language === "en");
+  const existingTranslations = (window.__IDX||[]).filter(e => e.originalSlug === b.slug);
+  // if THIS book is a translation, find the original
+  const originalBook = b.originalSlug ? (bySlug[b.originalSlug] || null) : null;
+
+  // Language switcher: shown on original books that have translations
   const langSwitcher = existingTranslations.length
-    ? `<div class="lang-switcher"><i class="fa-solid fa-earth-europe fa-inline"></i>Available in: <strong>${(LANG_NAMES[b.language]||b.language.toUpperCase())}</strong>${existingTranslations.map(t=>`<a href="/book/${t.slug}" class="lang-link">English (${t.translatedType||'translated'})</a>`).join("")}</div>`
+    ? `<div class="lang-switcher">
+        <i class="fa-solid fa-earth-europe fa-inline"></i>
+        <span class="lang-pill current">${LANG_NAMES[b.language]||b.language.toUpperCase()}</span>
+        ${existingTranslations.map(t=>`<a href="/book/${t.slug}" class="lang-pill translated"><i class="fa-solid fa-language fa-inline"></i>English <span class="lang-engine">${t.translatedType||'translated'}</span></a>`).join("")}
+      </div>`
+    : "";
+
+  // Translation banner: shown on translated books
+  const translationBanner = originalBook
+    ? `<div class="tx-origin-bar">
+        <i class="fa-solid fa-language fa-inline"></i>
+        Translated to English from <strong>${LANG_NAMES[b.translatedFrom]||b.translatedFrom||'original language'}</strong> via <strong>${b.translatedType||'unknown'}</strong> · community contribution
+        <a href="/book/${originalBook.slug}" class="tx-origin-link"><i class="fa-solid fa-arrow-left fa-inline"></i>View original</a>
+      </div>`
     : "";
   const dlActs = `<div class="detail-acts">
       <button id="printBtn"><i class="fa-solid fa-print fa-inline"></i>Print / PDF</button>
@@ -490,6 +507,7 @@ async function renderBook(slug){
   el("list").innerHTML = `
     <a class="back" href="#/"><i class="fa-solid fa-arrow-left fa-inline"></i>all books</a>
     ${b.atRisk?`<div class="riskbar"><i class="fa-solid fa-triangle-exclamation fa-inline"></i><strong>Mirrored because it's at risk.</strong> This work faces takedown, banning, or restricted access somewhere. We keep a readable copy.</div>`:""}
+    ${translationBanner}
     <div class="bookhead">
       ${gallery?"":coverEl(b, true)}
       <div class="bookinfo">

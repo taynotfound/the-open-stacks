@@ -94,9 +94,15 @@ padding:4px 10px;border-radius:20px;cursor:pointer;font-size:12px;transition:bor
 .sort-row select:focus{border-color:#f97316}
 .tx-contribute{background:none;border:none;color:#f97316;cursor:pointer;font:inherit;padding:0;text-decoration:underline;display:inline}
 .tx-contribute:hover{color:#fb923c}
-.lang-switcher{display:flex;align-items:center;gap:8px;padding:8px 12px;margin:8px 0;background:#1b1917;border:1px solid #2a2624;border-radius:6px;font-size:13px;color:#837b74;flex-wrap:wrap}
-.lang-link{color:#f97316;text-decoration:none;padding:2px 8px;border:1px solid #f97316;border-radius:4px;font-size:12px}
-.lang-link:hover{background:#f97316;color:#131110}
+.lang-switcher{display:flex;align-items:center;gap:6px;padding:8px 12px;margin:8px 0;background:#1b1917;border:1px solid #2a2624;border-radius:6px;font-size:13px;color:#837b74;flex-wrap:wrap}
+.lang-pill{padding:3px 10px;border-radius:20px;font-size:12px;font-weight:500;text-decoration:none;border:1px solid #2a2624;color:#837b74;background:#131110}
+.lang-pill.current{border-color:#3a3431;color:#e9e5e1;cursor:default}
+.lang-pill.translated{border-color:#f97316;color:#f97316}
+.lang-pill.translated:hover{background:#f97316;color:#131110}
+.lang-engine{font-size:10px;opacity:.7;margin-left:3px}
+.tx-origin-bar{display:flex;align-items:center;gap:10px;padding:10px 14px;margin:0 0 12px;background:rgba(249,115,22,.06);border:1px solid rgba(249,115,22,.2);border-radius:6px;font-size:13px;color:#837b74;flex-wrap:wrap}
+.tx-origin-link{margin-left:auto;color:#f97316;text-decoration:none;font-size:12px;white-space:nowrap}
+.tx-origin-link:hover{text-decoration:underline}
 .tx-badge{font-size:12px;color:var(--mut);background:rgba(249,115,22,.08);border:1px solid rgba(249,115,22,.2);border-radius:6px;padding:5px 10px;margin-bottom:16px;display:inline-block}
 .tx-row{display:inline-flex;align-items:center;gap:0}
 .tx-row button{border-radius:6px 0 0 6px!important}
@@ -397,6 +403,6 @@ font-weight:600;cursor:pointer;transition:.15s;font-family:inherit}
 <span class="k161">Brought to you by <strong>Kommando 161</strong> <span class="red">⚑</span></span>
 </footer>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/lunr.js/2.3.9/lunr.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-<script src="/app.js?v=33"></script>
+<script src="/app.js?v=34"></script>
 </body>
 </html>
