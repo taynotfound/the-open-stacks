@@ -64,38 +64,29 @@ function fileLabel(f){
 async function loadTree(){
   const head = await fetch(`${API}/commits/${BRANCH}`).then(r=>r.json());
   const sha = head.sha;
-  const cacheKey = "libcom_books_"+sha;
+  const cacheKey = "libcom_index_"+sha;
   const cached = localStorage.getItem(cacheKey);
   if(cached){ return {books: JSON.parse(cached), sha, cached:true}; }
-  const tree = await fetch(`${API}/git/trees/${sha}?recursive=1`).then(r=>r.json());
-  const mdPaths = (tree.tree||[]).filter(t=>t.type==="blob" && t.path.startsWith("books/") && t.path.endsWith(".md")).map(t=>t.path);
-  const out = [];
-  const B = 40;
-  for(let i=0;i<mdPaths.length;i+=B){
-    const batch = mdPaths.slice(i, i+B);
-    const res = await Promise.all(batch.map(p =>
-      fetch(`${RAW}/${p.split("/").map(encodeURIComponent).join("/")}`).then(r=>r.ok?r.text():"").catch(()=> "")));
-    res.forEach((txt,j)=>{
-      if(!txt) return;
-      const {meta, body} = parseFront(txt);
-      const title = meta.title||batch[j].split("/").pop();
-      out.push({
-        title, author: meta.author||"",
-        category: meta.category|| batch[j].split("/")[1] || "general",
-        state: meta.mirror_state||"none",
-        tags: meta.tags||[], files: meta.files||[],
-        images: meta.images||[], links: meta.links||[],
-        pageType: meta.page_type||"",
-        source: meta.source||"", cover: meta.cover||"",
-        sourceName: meta.source_name||"", atRisk: /true/i.test(meta.at_risk||""),
-        desc: meta.description||firstPara(body), body, slug: slugify(title), path: batch[j],
-      });
-    });
-    el("sub").textContent = `loaded ${out.length}/${mdPaths.length} books…`;
-  }
-  Object.keys(localStorage).filter(k=>k.startsWith("libcom_books_")).forEach(k=>localStorage.removeItem(k));
+  // ONE request: prebuilt index.json (metadata only, no bodies). Bodies are lazy-loaded per book.
+  el("sub").textContent = "loading index…";
+  const out = await fetch(`${RAW}/index.json`).then(r=>{
+    if(!r.ok) throw new Error("index.json "+r.status);
+    return r.json();
+  });
+  Object.keys(localStorage).filter(k=>k.startsWith("libcom_books_")||k.startsWith("libcom_index_")).forEach(k=>localStorage.removeItem(k));
   try{ localStorage.setItem(cacheKey, JSON.stringify(out)); }catch(e){}
   return {books: out, sha, cached:false};
+}
+
+// lazy-load a single book's full body (markdown after front-matter) only when opened
+async function ensureBody(b){
+  if(b.body!==undefined) return b.body;
+  if(!b.hasBody){ b.body=""; return ""; }
+  try{
+    const txt = await fetch(`${RAW}/${b.path.split("/").map(encodeURIComponent).join("/")}`).then(r=>r.ok?r.text():"");
+    b.body = parseFront(txt).body || "";
+  }catch(e){ b.body=""; }
+  return b.body;
 }
 
 function coverEl(b, big){
@@ -189,9 +180,10 @@ function setSEO(title, desc, url){
   set('link[rel="canonical"]',"href",url);
 }
 
-function renderBook(slug){
+async function renderBook(slug){
   const b = bySlug[slug];
   if(!b){ el("list").className=""; el("list").innerHTML = `<div class="loading">Not found. <a href="#/">← back</a></div>`; return; }
+  await ensureBody(b);
   const canon = location.href;
   setSEO(`${b.title} — The Open Stacks`, b.desc || `${b.title}${b.author?" by "+b.author:""}, archived on The Open Stacks.`, canon);
   el("list").className = "detail";
