@@ -257,15 +257,15 @@ function renderStats(){
     const max = Math.max(...rows.map(r=>r[1]),1);
     return rows.map(([k,v])=>`
       <div class="statrow">
-        <div class="statlabel">${esc(k)}</div>
+        <div class="statlabel">${k}</div>
         <div class="stattrack"><div class="statfill" style="width:${(v/max*100).toFixed(1)}%"></div></div>
         <div class="statval">${v.toLocaleString()}${unit||""}</div>
       </div>`).join("");
   };
   const bigStat = (n,l) => `<div class="bigstat"><div class="bignum">${n}</div><div class="biglabel">${l}</div></div>`;
-  const catRows = Object.entries(byCat).sort((a,b)=>b[1]-a[1]);
-  const srcRows = Object.entries(bySrc).sort((a,b)=>b[1]-a[1]).slice(0,10);
-  const typeRows = Object.entries(byType).sort((a,b)=>b[1]-a[1]).map(([k,v])=>[typeLabel[k]||k,v]);
+  const catRows = Object.entries(byCat).sort((a,b)=>b[1]-a[1]).map(([k,v])=>[esc(k),v]);
+  const srcRows = Object.entries(bySrc).sort((a,b)=>b[1]-a[1]).slice(0,10).map(([k,v])=>[esc(k),v]);
+  const typeRows = Object.entries(byType).sort((a,b)=>b[1]-a[1]).map(([k,v])=>[typeLabel[k]||esc(k),v]);
   const hostPct = totalFiles?Math.round(hostedFiles/totalFiles*100):0;
 
   el("list").innerHTML = `
