@@ -299,7 +299,7 @@ async function renderBook(slug){
     return `<a${cls} href="${esc(f.url)}" target="_blank" rel="noopener noreferrer">${esc(fileLabel(f))}<span class="fn">${esc(f.name)}${tag}</span></a>`;
   }).join("");
   const tags = b.tags.map(t=>`<span class="tag">${esc(t)}</span>`).join("");
-  const imgs = b.images.length ? `<div class="gallery${gallery?' big':''}">${b.images.map(u=>`<a href="${esc(u)}" target="_blank" rel="noopener noreferrer"><img loading="lazy" src="${esc(u)}" alt=""></a>`).join("")}</div>` : "";
+  const imgs = b.images.length ? `<div class="gallery${gallery?' big':''}" id="gal">${b.images.map((u,i)=>`<a href="${esc(u)}" data-lb="${i}"><img loading="lazy" src="${esc(u)}" alt=""></a>`).join("")}</div>` : "";
   const outlinks = b.links.length ? `<h3 class="dh">Links from this page</h3><ul class="outlinks">${b.links.map(l=>`<li><a href="${esc(l.url)}" target="_blank" rel="noopener noreferrer">${esc(l.text||l.url)} <i class="fa-solid fa-arrow-up-right-from-square"></i></a></li>`).join("")}</ul>` : "";
   const contentHtml = b.body && b.body.length>40 ? mdToHtml(b.body) : "";
   const content = contentHtml ? `<div class="content">${contentHtml}</div>` : "";
@@ -309,6 +309,12 @@ async function renderBook(slug){
   // self-hosted HTML files -> read inline. raw/jsDelivr force text/plain, so we fetch and inject via srcdoc (renders as HTML).
   const htmlFile = b.files.find(f=>f.hosted && /\.html?($|\?|#)/i.test((f.url||"")+ " " + (f.name||"")) || (f.hosted && /html/i.test(f.type||"")));
   const reader = htmlFile ? `<h3 class="dh">Read here</h3><div class="reader"><iframe id="htmlReader" loading="lazy" title="${esc(b.title)}" sandbox="allow-popups allow-popups-to-escape-sandbox"></iframe></div><p class="cmeta"><a href="${esc(htmlFile.url)}" target="_blank" rel="noopener noreferrer">Open raw file in new tab <i class="fa-solid fa-arrow-up-right-from-square"></i></a></p>` : "";
+
+  const hostedFiles = b.files.filter(f=>f.hosted);
+  const dlActs = `<div class="detail-acts">
+      <button id="printBtn"><i class="fa-solid fa-print fa-inline"></i>Print / PDF</button>
+      ${hostedFiles.length?`<button id="dlItemBtn"><i class="fa-solid fa-download fa-inline"></i>Download file${hostedFiles.length>1?'s ('+hostedFiles.length+')':''}</button>`:""}
+    </div>`;
 
   el("list").innerHTML = `
     <a class="back" href="#/"><i class="fa-solid fa-arrow-left fa-inline"></i>all books</a>
@@ -323,6 +329,7 @@ async function renderBook(slug){
         <div class="tags">${tags}</div>
       </div>
     </div>
+    ${dlActs}
     ${b.desc?`<p class="desc">${esc(b.desc)}</p>`:""}
     ${dlBlock}
     ${imgs}
@@ -340,10 +347,58 @@ async function renderBook(slug){
       fr.srcdoc = wrapped;
     }).catch(()=>{ fr.srcdoc = "<p style='font-family:sans-serif;padding:20px'>Could not load the text. Use the link below.</p>"; });
   }
+  // print / download-item wiring
+  const pb = document.getElementById("printBtn");
+  if(pb) pb.addEventListener("click", ()=>window.print());
+  const dib = document.getElementById("dlItemBtn");
+  if(dib) dib.addEventListener("click", ()=>{
+    hostedFiles.forEach((f,i)=>setTimeout(()=>{
+      const a = document.createElement("a");
+      a.href = f.url; a.download = f.name || ""; a.rel = "noopener";
+      document.body.appendChild(a); a.click(); a.remove();
+    }, i*350));
+  });
+  // gallery lightbox
+  if(b.images.length) initLightbox(b.images, b.title);
   window.scrollTo(0,0);
 }
 
-// ---- Stats page: honest breakdown of what the library actually holds ----
+// ---- gallery lightbox ----
+let lbState = {imgs:[], i:0, title:""};
+function initLightbox(imgs, title){
+  lbState = {imgs, i:0, title:title||""};
+  const gal = document.getElementById("gal");
+  if(!gal) return;
+  gal.querySelectorAll("a[data-lb]").forEach(a=>{
+    a.addEventListener("click", e=>{ e.preventDefault(); openLightbox(+a.dataset.lb); });
+  });
+}
+function openLightbox(i){
+  lbState.i = i;
+  el("lightbox").classList.add("on");
+  el("lightbox").setAttribute("aria-hidden","false");
+  document.body.style.overflow = "hidden";
+  showLightbox();
+}
+function closeLightbox(){
+  el("lightbox").classList.remove("on");
+  el("lightbox").setAttribute("aria-hidden","true");
+  document.body.style.overflow = "";
+}
+function stepLightbox(d){
+  const n = lbState.imgs.length;
+  lbState.i = (lbState.i + d + n) % n;
+  showLightbox();
+}
+function showLightbox(){
+  const n = lbState.imgs.length;
+  el("lbImg").src = lbState.imgs[lbState.i];
+  el("lbCount").textContent = n>1 ? `${lbState.i+1} / ${n}` : "";
+  el("lbCap").textContent = lbState.title;
+  const multi = n>1;
+  el("lbPrev").style.display = multi?"flex":"none";
+  el("lbNext").style.display = multi?"flex":"none";
+}
 function renderStats(){
   setSEO("Stats - The Open Stacks","A live breakdown of The Open Stacks: how many items, what kinds, which sources, and how much we actually self-host.", location.href.split("#")[0]);
   el("list").className = "detail";
@@ -514,6 +569,18 @@ function buildCats(){
 
 (async function(){
   el("dlall").href = ZIPBALL;
+  const dlf = el("dlallfoot"); if(dlf) dlf.href = ZIPBALL;
+  // lightbox global controls
+  el("lbClose").addEventListener("click", closeLightbox);
+  el("lbPrev").addEventListener("click", ()=>stepLightbox(-1));
+  el("lbNext").addEventListener("click", ()=>stepLightbox(1));
+  el("lightbox").addEventListener("click", e=>{ if(e.target.id==="lightbox") closeLightbox(); });
+  document.addEventListener("keydown", e=>{
+    if(!el("lightbox").classList.contains("on")) return;
+    if(e.key==="Escape") closeLightbox();
+    else if(e.key==="ArrowLeft") stepLightbox(-1);
+    else if(e.key==="ArrowRight") stepLightbox(1);
+  });
   try{
     const {books:bs, sha, cached} = await loadTree();
     books = bs; books.forEach(b=>bySlug[b.slug]=b);
