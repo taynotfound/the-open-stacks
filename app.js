@@ -156,21 +156,77 @@ function renderList(){
   } else { more.style.display="none"; }
 }
 
-// crude, safe markdown->html for scraped body (paragraphs, links, images, headings)
+// safe markdown->html for scraped body.
+// headings, blockquotes, hr, ordered/unordered lists, bold, italic, code,
+// footnote refs, links, images. XSS-safe: everything is escaped, then a small
+// whitelist of inline formatting is re-applied via placeholder tokens.
+function mdInline(s){
+  // s is already HTML-escaped. Restore a whitelist of inline formatting.
+  // links + images were pre-extracted to tokens by the block pass.
+  // code spans first so their contents aren't further formatted
+  s = s.replace(/`([^`]+)`/g, (m,c)=>`<code>${c}</code>`);
+  // bold (**x** or __x__) then italic (*x* or _x_)
+  s = s.replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>");
+  s = s.replace(/__([^_]+)__/g, "<strong>$1</strong>");
+  s = s.replace(/(^|[^*])\*([^*\n]+)\*/g, "$1<em>$2</em>");
+  s = s.replace(/(^|[^\w_])_([^_\n]+)_(?![\w_])/g, "$1<em>$2</em>");
+  // footnote refs like [1] or [12] -> subtle superscript
+  s = s.replace(/\[(\d{1,3})\]/g, '<sup class="fnref">$1</sup>');
+  return s;
+}
 function mdToHtml(md){
   if(!md) return "";
-  return md.split(/\n{2,}/).map(block=>{
-    let t = block.trim();
-    if(!t) return "";
-    const h = t.match(/^(#{1,4})\s+(.*)/);
-    if(h) return `<h${h[1].length+1}>${esc(h[2])}</h${h[1].length+1}>`;
-    // image ![alt](url) or ![alt](<url>)
-    t = t.replace(/!\[[^\]]*\]\(<?(https?:\/\/[^)\s>]+)>?\)/g,(m,u)=>`<img class="inl" loading="lazy" src="${esc(u)}" alt="">`);
-    // links [text](url) or [text](<url>)
-    t = t.replace(/\[([^\]]+)\]\(<?(https?:\/\/[^)\s>]+)>?\)/g,(m,tx,u)=>`<a href="${esc(u)}" target="_blank" rel="noopener noreferrer">${esc(tx)}</a>`);
-    if(/^<img/.test(t)) return `<p class="imgwrap">${t}</p>`;
-    return `<p>${t.replace(/\n/g,"<br>")}</p>`;
-  }).join("");
+  // 1) extract links + images to placeholder tokens BEFORE escaping so their
+  //    URLs/text survive escaping and inline formatting untouched.
+  const tokens = [];
+  const stash = html => { tokens.push(html); return `\u0000${tokens.length-1}\u0000`; };
+  md = md.replace(/!\[([^\]]*)\]\(<?(https?:\/\/[^)\s>]+)>?\)/g,
+    (m,alt,u)=>stash(`<img class="inl" loading="lazy" src="${esc(u)}" alt="${esc(alt)}">`));
+  md = md.replace(/\[([^\]]+)\]\(<?(https?:\/\/[^)\s>]+)>?\)/g,
+    (m,tx,u)=>stash(`<a href="${esc(u)}" target="_blank" rel="noopener noreferrer">${esc(tx)}</a>`));
+
+  const restore = s => s.replace(/\u0000(\d+)\u0000/g,(m,i)=>tokens[+i]);
+  // ensure ATX headings / hr sitting on their own line become their own block
+  // even when the source only left a single newline around them.
+  md = md.replace(/([^\n])\n(#{1,6}\s)/g, "$1\n\n$2").replace(/(#{1,6}[^\n]*)\n(?!\n)/g, "$1\n\n");
+  const out = [];
+  const blocks = md.split(/\n{2,}/);
+  for(let raw of blocks){
+    let t = raw.replace(/\s+$/,"");
+    if(!t.trim()) continue;
+
+    // horizontal rule
+    if(/^\s*([-*_])\s*(\1\s*){2,}$/.test(t.trim())){ out.push("<hr>"); continue; }
+
+    // heading
+    const h = t.trim().match(/^(#{1,6})\s+(.*)$/);
+    if(h){ const lv=Math.min(h[1].length+1,6); out.push(`<h${lv}>${restore(mdInline(esc(h[2].trim())))}</h${lv}>`); continue; }
+
+    // blockquote (one or more > lines)
+    if(/^\s*>/.test(t)){
+      const inner = t.split("\n").map(l=>l.replace(/^\s*>\s?/,"")).join("\n");
+      out.push(`<blockquote>${restore(mdInline(esc(inner)).replace(/\n/g,"<br>"))}</blockquote>`);
+      continue;
+    }
+
+    // unordered list
+    if(/^\s*[-*+]\s+/.test(t) && t.split("\n").every(l=>/^\s*[-*+]\s+/.test(l)||!l.trim())){
+      const lis = t.split("\n").filter(l=>l.trim()).map(l=>`<li>${restore(mdInline(esc(l.replace(/^\s*[-*+]\s+/,""))))}</li>`).join("");
+      out.push(`<ul>${lis}</ul>`); continue;
+    }
+    // ordered list
+    if(/^\s*\d+[.)]\s+/.test(t) && t.split("\n").every(l=>/^\s*\d+[.)]\s+/.test(l)||!l.trim())){
+      const lis = t.split("\n").filter(l=>l.trim()).map(l=>`<li>${restore(mdInline(esc(l.replace(/^\s*\d+[.)]\s+/,""))))}</li>`).join("");
+      out.push(`<ol>${lis}</ol>`); continue;
+    }
+
+    // pure image paragraph
+    const esced = restore(mdInline(esc(t)));
+    if(/^\s*<img/.test(esced)) { out.push(`<p class="imgwrap">${esced}</p>`); continue; }
+
+    out.push(`<p>${esced.replace(/\n/g,"<br>")}</p>`);
+  }
+  return out.join("");
 }
 
 function setSEO(title, desc, url){
