@@ -476,6 +476,11 @@ async function renderBook(slug){
 
   const hostedFiles = b.files.filter(f=>f.hosted);
   const needsTranslation = b.language && b.language !== "en";
+  // find any already-merged translations for this book (originalSlug === b.slug)
+  const existingTranslations = (window.__IDX||[]).filter(e => e.originalSlug === b.slug && e.language === "en");
+  const langSwitcher = existingTranslations.length
+    ? `<div class="lang-switcher"><i class="fa-solid fa-earth-europe fa-inline"></i>Available in: <strong>${(LANG_NAMES[b.language]||b.language.toUpperCase())}</strong>${existingTranslations.map(t=>`<a href="/book/${t.slug}" class="lang-link">English (${t.translatedType||'translated'})</a>`).join("")}</div>`
+    : "";
   const dlActs = `<div class="detail-acts">
       <button id="printBtn"><i class="fa-solid fa-print fa-inline"></i>Print / PDF</button>
       ${hostedFiles.length?`<button id="dlItemBtn"><i class="fa-solid fa-download fa-inline"></i>Download file${hostedFiles.length>1?'s ('+hostedFiles.length+')':''}</button>`:""}
@@ -497,6 +502,7 @@ async function renderBook(slug){
       </div>
     </div>
     ${dlActs}
+    ${langSwitcher}
     ${b.desc?`<p class="desc">${esc(b.desc)}</p>`:""}
     ${dlBlock}
     ${imgs}
@@ -551,10 +557,42 @@ async function renderBook(slug){
         const {text: translated, source} = await translateText(b.body || contentEl.innerText, b.language, engine);
         contentEl.innerHTML = mdToHtml(translated);
         const googleNote = source.includes("Google") ? " · <strong>your text was sent to Google</strong>" : "";
-        const badge = `<div class="tx-badge"><i class="fa-solid fa-language fa-inline"></i>Translated to English via ${source}${googleNote}</div>`;
+        const badge = `<div class="tx-badge"><i class="fa-solid fa-language fa-inline"></i>Translated to English via ${source}${googleNote} · <button id="contributeBtn" class="tx-contribute"><i class="fa-solid fa-code-pull-request fa-inline"></i>Contribute translation</button></div>`;
         contentEl.insertAdjacentHTML("afterbegin", badge);
         txb.innerHTML = `<i class="fa-solid fa-rotate-left fa-inline"></i>Show original (${langName})`;
         txb.dataset.translated = "1";
+        txb.dataset.translatedText = translated;
+        txb.dataset.engine = source.toLowerCase().includes("deepl") ? "deepl" : source.toLowerCase().includes("mymemory") ? "mymemory" : "google";
+        // wire contribute button
+        const cb = document.getElementById("contributeBtn");
+        if(cb) cb.addEventListener("click", async () => {
+          cb.disabled = true;
+          cb.innerHTML = `<i class="fa-solid fa-spinner fa-spin fa-inline"></i>Opening PR...`;
+          try {
+            const resp = await fetch("/api/contribute-translation", {
+              method: "POST",
+              headers: {"Content-Type":"application/json"},
+              body: JSON.stringify({
+                originalSlug: b.slug,
+                originalPath: b.path,
+                originalTitle: b.title,
+                translatedTitle: null,
+                translatedBody: translated,
+                translatedFrom: b.language,
+                translatedType: txb.dataset.engine
+              })
+            });
+            const data = await resp.json();
+            if(!resp.ok) throw new Error(data.error || "Unknown error");
+            cb.innerHTML = `<i class="fa-solid fa-check fa-inline"></i>PR opened!`;
+            cb.onclick = () => window.open(data.prUrl, "_blank");
+            cb.disabled = false;
+          } catch(e) {
+            cb.innerHTML = `<i class="fa-solid fa-code-pull-request fa-inline"></i>Contribute translation`;
+            cb.disabled = false;
+            alert("Could not open PR: " + e.message);
+          }
+        });
       } catch(e) {
         txb.innerHTML = `<i class="fa-solid fa-language fa-inline"></i>Translate to English`;
         alert("Translation failed: " + e.message);
@@ -840,7 +878,7 @@ function buildLangs(){
   });
   try{
     const {books:bs, sha, cached} = await loadTree();
-    books = bs; books.forEach(b=>bySlug[b.slug]=b);
+    books = bs; books.forEach(b=>bySlug[b.slug]=b); window.__IDX = books;
     const hosted = books.reduce((n,b)=>n+b.files.filter(f=>f.hosted).length,0);
     const total = books.reduce((n,b)=>n+b.files.length,0);
     el("sub").innerHTML = `${books.length} items · <span class="badge">${hosted}</span>/${total} files self-hosted · <a href="${API.replace('api.github.com/repos','github.com')}/commit/${sha}" target="_blank" rel="noopener noreferrer">@${sha.slice(0,7)}</a>`;
