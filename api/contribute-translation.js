@@ -4,7 +4,7 @@
 
 const OWNER = "taynotfound";
 const REPO = "open-stacks-library";
-const BASE_BRANCH = "master";
+const BASE_BRANCH = "main";
 
 export default async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
