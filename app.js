@@ -7,12 +7,77 @@ const API = `https://api.github.com/repos/${OWNER}/${REPO}`;
 const RAW = `https://raw.githubusercontent.com/${OWNER}/${REPO}/${BRANCH}`;
 const ZIPBALL = `https://github.com/${OWNER}/${REPO}/archive/refs/heads/${BRANCH}.zip`;
 const ORIGIN = (typeof location!=="undefined" && location.origin && location.origin.startsWith("http")) ? location.origin : "https://theopenstacks.apolochees.me";
+const DEEPL_KEY = "REDACTED";
+const DEEPL_URL = "https://api-free.deepl.com/v2/translate";
 
 const el = id => document.getElementById(id);
 let books = [], fState = "all", fCat = null, fLang = null, fSort = "alpha", bySlug = {};
 const LANG_NAMES = {en:"English",de:"Deutsch",fr:"Francais",es:"Espanol",it:"Italiano",pt:"Portugues",zh:"Chinese",ru:"Russian",bg:"Bulgarian",nl:"Nederlands",pl:"Polski"};
 
-// ---- bookmarks (localStorage) ----
+// ---- translation (multi-source: DeepL Free -> MyMemory fallback) ----
+const TX_CACHE_PREFIX = "os_tx_";
+
+async function translateDeepL(text, sourceLang) {
+  const resp = await fetch(DEEPL_URL, {
+    method: "POST",
+    headers: {"Content-Type": "application/x-www-form-urlencoded"},
+    body: new URLSearchParams({auth_key: DEEPL_KEY, text, source_lang: sourceLang.toUpperCase(), target_lang: "EN"})
+  });
+  if (!resp.ok) throw new Error(`DeepL ${resp.status}`);
+  const d = await resp.json();
+  return d.translations[0].text;
+}
+
+async function translateMyMemory(text, sourceLang) {
+  // MyMemory: 1000 words/day free, no key needed
+  const url = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text.slice(0,500))}&langpair=${sourceLang}|en`;
+  const resp = await fetch(url);
+  if (!resp.ok) throw new Error(`MyMemory ${resp.status}`);
+  const d = await resp.json();
+  if (d.responseStatus !== 200) throw new Error(`MyMemory: ${d.responseDetails}`);
+  return d.responseData.translatedText;
+}
+
+// Splits text into chunks of ~4000 chars at paragraph boundaries, translates each, rejoins.
+async function translateText(text, sourceLang) {
+  const cacheKey = TX_CACHE_PREFIX + sourceLang + "_" + btoa(encodeURIComponent(text.slice(0,80))).slice(0,32);
+  const cached = localStorage.getItem(cacheKey);
+  if (cached) return {text: cached, source: "cache"};
+
+  // chunk at blank lines, max ~4000 chars per chunk (DeepL limit per field is much higher but be polite)
+  const paras = text.split(/\n{2,}/);
+  const chunks = [];
+  let cur = "";
+  for (const p of paras) {
+    if (cur.length + p.length > 3800 && cur) { chunks.push(cur.trim()); cur = ""; }
+    cur += (cur ? "\n\n" : "") + p;
+  }
+  if (cur.trim()) chunks.push(cur.trim());
+
+  const translated = [];
+  for (const chunk of chunks) {
+    let result, usedSource;
+    try {
+      result = await translateDeepL(chunk, sourceLang);
+      usedSource = "DeepL";
+    } catch(e) {
+      console.warn("DeepL failed, trying MyMemory:", e.message);
+      try {
+        result = await translateMyMemory(chunk, sourceLang);
+        usedSource = "MyMemory";
+      } catch(e2) {
+        result = `[Translation failed: ${e2.message}]`;
+        usedSource = "error";
+      }
+    }
+    translated.push({text: result, source: usedSource});
+  }
+
+  const full = translated.map(t => t.text).join("\n\n");
+  const sources = [...new Set(translated.map(t => t.source).filter(s => s !== "error"))];
+  localStorage.setItem(cacheKey, full);
+  return {text: full, source: sources.join(" + ") || "error"};
+}
 const BMK_KEY = "os_bookmarks";
 let bookmarks = new Set();
 try{ bookmarks = new Set(JSON.parse(localStorage.getItem(BMK_KEY)||"[]")); }catch(e){}
@@ -391,9 +456,11 @@ async function renderBook(slug){
   const reader = htmlFile ? `<h3 class="dh">Read here</h3><div class="reader"><iframe id="htmlReader" loading="lazy" title="${esc(b.title)}" sandbox="allow-popups allow-popups-to-escape-sandbox"></iframe></div><p class="cmeta"><a href="${esc(htmlFile.url)}" target="_blank" rel="noopener noreferrer">Open raw file in new tab <i class="fa-solid fa-arrow-up-right-from-square"></i></a></p>` : "";
 
   const hostedFiles = b.files.filter(f=>f.hosted);
+  const needsTranslation = b.language && b.language !== "en";
   const dlActs = `<div class="detail-acts">
       <button id="printBtn"><i class="fa-solid fa-print fa-inline"></i>Print / PDF</button>
       ${hostedFiles.length?`<button id="dlItemBtn"><i class="fa-solid fa-download fa-inline"></i>Download file${hostedFiles.length>1?'s ('+hostedFiles.length+')':''}</button>`:""}
+      ${needsTranslation?`<button id="txBtn"><i class="fa-solid fa-language fa-inline"></i>Translate to English</button>`:""}
     </div>`;
 
   el("list").innerHTML = `
@@ -439,6 +506,36 @@ async function renderBook(slug){
       document.body.appendChild(a); a.click(); a.remove();
     }, i*350));
   });
+  // translate button: replaces .content with English translation on demand
+  const txb = document.getElementById("txBtn");
+  if(txb && needsTranslation) {
+    const langName = LANG_NAMES[b.language] || b.language.toUpperCase();
+    txb.addEventListener("click", async () => {
+      const contentEl = el("list").querySelector(".content");
+      if(!contentEl){ txb.textContent = "No text to translate"; txb.disabled=true; return; }
+      // check if already showing translated version
+      if(txb.dataset.translated === "1") {
+        contentEl.innerHTML = contentHtml;
+        txb.innerHTML = `<i class="fa-solid fa-language fa-inline"></i>Translate to English`;
+        txb.dataset.translated = "0";
+        return;
+      }
+      txb.disabled = true;
+      txb.innerHTML = `<i class="fa-solid fa-spinner fa-spin fa-inline"></i>Translating...`;
+      try {
+        const {text: translated, source} = await translateText(b.body || contentEl.innerText, b.language);
+        contentEl.innerHTML = mdToHtml(translated);
+        const badge = `<div class="tx-badge"><i class="fa-solid fa-language fa-inline"></i>Translated to English via ${source}</div>`;
+        contentEl.insertAdjacentHTML("afterbegin", badge);
+        txb.innerHTML = `<i class="fa-solid fa-rotate-left fa-inline"></i>Show original (${langName})`;
+        txb.dataset.translated = "1";
+      } catch(e) {
+        txb.innerHTML = `<i class="fa-solid fa-language fa-inline"></i>Translate to English`;
+        alert("Translation failed: " + e.message);
+      }
+      txb.disabled = false;
+    });
+  }
   // gallery lightbox
   if(b.images.length) initLightbox(b.images, b.title);
   // reading-progress: track scroll depth through readable content, persist %.
