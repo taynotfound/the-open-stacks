@@ -63,7 +63,7 @@ export default async function handler(req, res){
     const kw = [b.category, b.author, ...(b.tags||[])].filter(Boolean).join(", ");
 
     const T=esc(title), D=esc(desc), U=esc(canon), IMG=esc(cover), KW=esc(kw);
-    const card = isGallery ? "summary_large_image" : "summary_large_image";
+    const card = "summary_large_image";
 
     const meta = `
 <title>${T}</title>
