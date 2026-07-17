@@ -20,7 +20,8 @@ u(f"{BASE}/contribute", "0.5")
 for it in items:
     slug = it.get("slug")
     if slug:
-        u(f"{BASE}/book/{quote(slug, safe='')}", "0.7")
+        kind = "gallery" if (it.get("pageType") == "gallery" or (it.get("images") and not it.get("files"))) else "book"
+        u(f"{BASE}/{kind}/{quote(slug, safe='')}", "0.7")
 
 xml = '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n' + "\n".join(urls) + "\n</urlset>\n"
 open("sitemap.xml", "w").write(xml)

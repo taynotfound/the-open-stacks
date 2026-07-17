@@ -95,8 +95,12 @@ function coverEl(b, big){
   return `<div class="cover ph${big?' big':''}"></div>`;
 }
 
+function itemKind(b){ return (b.pageType==="gallery" || (b.images && b.images.length && !(b.files&&b.files.length))) ? "gallery" : "book"; }
+function itemPath(b){ return `/${itemKind(b)}/${encodeURIComponent(b.slug)}`; }
+function itemHash(b){ return `#${itemPath(b)}`; }
+
 function cardHTML(b){
-  return `<a class="card" href="#/book/${encodeURIComponent(b.slug)}">
+  return `<a class="card" href="${itemHash(b)}">
       ${coverEl(b)}
       ${b.atRisk?`<span class="risk"><i class="fa-solid fa-triangle-exclamation fa-inline"></i>at risk</span>`:""}
       ${b.pageType==="gallery"?`<span class="gtag"><i class="fa-solid fa-images fa-inline"></i>gallery</span>`:""}
@@ -213,7 +217,7 @@ async function renderBook(slug){
   const b = bySlug[slug];
   if(!b){ el("list").className=""; el("list").innerHTML = `<div class="loading">Not found. <a href="#/"><i class="fa-solid fa-arrow-left fa-inline"></i>back</a></div>`; return; }
   await ensureBody(b);
-  const canon = `${ORIGIN}/book/${encodeURIComponent(b.slug)}`;
+  const canon = `${ORIGIN}${itemPath(b)}`;
   setSEO(`${b.title} - The Open Stacks`, b.desc || `${b.title}${b.author?" by "+b.author:""}, archived on The Open Stacks.`, canon);
   setItemJsonLd(b, canon);
   el("list").className = "detail";
@@ -412,8 +416,8 @@ function route(){
   const h = location.hash;
   const controls = el("controls");
   const hideControls = () => { controls.style.display="none"; const more=el("more"); if(more) more.style.display="none"; };
-  const mh = h.match(/#\/book\/(.+)$/);
-  const mp = path.match(/^\/book\/(.+)$/);
+  const mh = h.match(/#\/(?:book|gallery)\/(.+)$/);
+  const mp = path.match(/^\/(?:book|gallery)\/(.+)$/);
   if(mh || mp){ hideControls(); renderBook(decodeURIComponent(mh?mh[1]:mp[1])); }
   else if(h==="#/stats" || path==="/stats"){ hideControls(); renderStats(); }
   else if(h==="#/contribute" || path==="/contribute"){ hideControls(); renderContribute(); }
