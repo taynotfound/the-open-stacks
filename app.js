@@ -742,38 +742,38 @@ function renderStats(){
   function makePie(entries) {
     const total = entries.reduce((s,[,v])=>s+v,0);
     if(!total) return "";
-    const R=110, CX=130, CY=130, r=R;
+    const R=110, CX=130, CY=130;
     let angle = -Math.PI/2;
     let slices = "";
     let legend = "";
-    entries.forEach(([label,val],i) => {
+    entries.forEach(function([label,val],i) {
       const frac = val/total;
       const a1 = angle, a2 = angle + frac*2*Math.PI;
-      const x1=CX+r*Math.cos(a1), y1=CY+r*Math.sin(a1);
-      const x2=CX+r*Math.cos(a2), y2=CY+r*Math.sin(a2);
+      const x1=(CX+R*Math.cos(a1)).toFixed(1), y1=(CY+R*Math.sin(a1)).toFixed(1);
+      const x2=(CX+R*Math.cos(a2)).toFixed(1), y2=(CY+R*Math.sin(a2)).toFixed(1);
       const large = frac>0.5?1:0;
       const col = PIE_COLORS[i%PIE_COLORS.length];
       if(frac > 0.003) {
-        slices += \`<path d="M\${CX},\${CY} L\${x1.toFixed(1)},\${y1.toFixed(1)} A\${r},\${r} 0 \${large},1 \${x2.toFixed(1)},\${y2.toFixed(1)} Z" fill="\${col}" opacity="0.92"/>\`;
+        slices += '<path d="M'+CX+','+CY+' L'+x1+','+y1+' A'+R+','+R+' 0 '+large+',1 '+x2+','+y2+' Z" fill="'+col+'" opacity="0.92"/>';
       }
       const pct = Math.round(frac*100);
       if(pct >= 1) {
-        legend += \`<div class="pielegrow"><span class="piedot" style="background:\${col}"></span><span class="pielabel">\${label}</span><span class="piepct">\${pct}%</span></div>\`;
+        legend += '<div class="pielegrow"><span class="piedot" style="background:'+col+'"></span><span class="pielabel">'+esc(label)+'</span><span class="piepct">'+pct+'%</span></div>';
       }
       angle = a2;
     });
-    return \`<div class="piewrap">
-      <svg width="260" height="260" viewBox="0 0 260 260" class="piesvg">
-        <circle cx="\${CX}" cy="\${CY}" r="\${r}" fill="#1b1917"/>
-        \${slices}
-        <circle cx="\${CX}" cy="\${CY}" r="52" fill="#131110"/>
-        <text x="\${CX}" y="\${CY}-6" text-anchor="middle" fill="#e9e5e1" font-size="18" font-weight="700" dy="0">\${total.toLocaleString()}</text>
-        <text x="\${CX}" y="\${CY}+14" text-anchor="middle" fill="#837b74" font-size="11" dy="20">items</text>
-      </svg>
-      <div class="pielegend">\${legend}</div>
-    </div>\`;
+    return '<div class="piewrap">'
+      + '<svg width="260" height="260" viewBox="0 0 260 260" class="piesvg">'
+      + '<circle cx="'+CX+'" cy="'+CY+'" r="'+R+'" fill="#1b1917"/>'
+      + slices
+      + '<circle cx="'+CX+'" cy="'+CY+'" r="52" fill="#131110"/>'
+      + '<text x="'+CX+'" y="'+(CY-6)+'" text-anchor="middle" fill="#e9e5e1" font-size="18" font-weight="700">'+total.toLocaleString()+'</text>'
+      + '<text x="'+CX+'" y="'+(CY+18)+'" text-anchor="middle" fill="#837b74" font-size="11">items</text>'
+      + '</svg>'
+      + '<div class="pielegend">'+legend+'</div>'
+      + '</div>';
   }
-  const topSrcs = Object.entries(bySrc).sort((a,b)=>b[1]-a[1]);
+    const topSrcs = Object.entries(bySrc).sort((a,b)=>b[1]-a[1]);
   // Group small sources into "other"
   const PIE_THRESHOLD = 0.02;
   const srcTotal = topSrcs.reduce((s,[,v])=>s+v,0);
