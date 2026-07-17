@@ -97,7 +97,7 @@ function coverEl(b, big){
 
 function itemKind(b){ return (b.pageType==="gallery" || (b.images && b.images.length && !(b.files&&b.files.length))) ? "gallery" : "book"; }
 function itemPath(b){ return `/${itemKind(b)}/${encodeURIComponent(b.slug)}`; }
-function itemHash(b){ return `#${itemPath(b)}`; }
+function itemHash(b){ return itemPath(b); }
 
 function cardHTML(b){
   return `<a class="card" href="${itemHash(b)}">
@@ -452,6 +452,23 @@ function buildCats(){
       btn.classList.add("on"); fState=btn.dataset.f; resetAndRender();
     }));
     window.addEventListener("hashchange", route);
+    window.addEventListener("popstate", route);
+    // intercept internal nav -> clean paths via History API (no hash, no full reload)
+    document.addEventListener("click", (e)=>{
+      const a = e.target.closest && e.target.closest("a");
+      if(!a) return;
+      let href = a.getAttribute("href") || "";
+      if(a.target==="_blank" || a.hasAttribute("download") || e.metaKey || e.ctrlKey || e.shiftKey || e.button!==0) return;
+      // normalize legacy hash links (#/book/..., #/) to clean paths
+      if(href.startsWith("#/")) href = href.slice(1);
+      else if(href==="#" ) href = "/";
+      else if(!href.startsWith("/")) return; // external or non-root, let browser handle
+      e.preventDefault();
+      if(location.pathname+location.hash !== href){
+        history.pushState(null, "", href);
+      }
+      route();
+    });
     route();
   }catch(e){
     el("list").innerHTML = `<div class="loading">Failed to load: ${esc(e.message)}</div>`;
