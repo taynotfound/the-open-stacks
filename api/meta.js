@@ -39,9 +39,9 @@ export default async function handler(req, res){
 
   let html;
   try {
-    const { readFileSync } = await import("fs");
-    const { join } = await import("path");
-    html = readFileSync(join(process.cwd(), "index.html"), "utf8");
+    const r = await fetch("https://raw.githubusercontent.com/taynotfound/the-open-stacks/master/index.html");
+    if (!r.ok) throw new Error("index.html fetch " + r.status);
+    html = await r.text();
   } catch(e){
     res.status(500).send("index load failed");
     return;

@@ -1,19 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
-  <defs>
-    <clipPath id="r"><rect x="0" y="0" width="64" height="64" rx="13"/></clipPath>
-  </defs>
-  <g clip-path="url(#r)">
-    <rect width="64" height="64" fill="#120f0e"/>
-    <polygon points="64,0 64,64 22,64" fill="#c0392b" opacity="0.16"/>
-    <g fill="none" stroke="#f97316" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round">
-      <rect x="15" y="16" width="34" height="9" rx="2.2"/>
-      <rect x="15" y="27.5" width="34" height="9" rx="2.2"/>
-      <rect x="15" y="39" width="34" height="9" rx="2.2"/>
-    </g>
-    <g fill="#f97316">
-      <circle cx="21.5" cy="20.5" r="1.7"/>
-      <circle cx="21.5" cy="32" r="1.7"/>
-      <circle cx="21.5" cy="43.5" r="1.7"/>
-    </g>
-  </g>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <rect width="32" height="32" rx="6" fill="#131110"/>
+  <text x="16" y="23" font-size="20" text-anchor="middle" font-family="serif" fill="#f97316">⊕</text>
 </svg>
