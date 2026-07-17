@@ -706,6 +706,32 @@ function renderStats(){
   const bigStat = (n,l) => `<div class="bigstat"><div class="bignum">${n}</div><div class="biglabel">${l}</div></div>`;
   const catRows = Object.entries(byCat).sort((a,b)=>b[1]-a[1]).map(([k,v])=>[esc(k),v]);
   const srcRows = Object.entries(bySrc).sort((a,b)=>b[1]-a[1]).slice(0,10).map(([k,v])=>[esc(k),v]);
+
+  // Known library totals for progress display
+  const KNOWN_TOTALS = {
+    "theanarchistlibrary.org": 16000,
+    "fr.anarchistlibraries.net": 1085,
+    "libcom.org": 1409,
+    "es.anarchistlibraries.net": 568,
+    "it.anarchistlibraries.net": 451,
+    "pt.anarchistlibraries.net": 298,
+    "pl.anarchistlibraries.net": 191,
+    "de.anarchistlibraries.net": 900,
+    "CrimethInc.": 300,
+  };
+  const libRows = Object.entries(bySrc)
+    .filter(([k]) => KNOWN_TOTALS[k])
+    .sort((a,b) => b[1]-a[1]);
+  const libProgress = libRows.map(([src, have]) => {
+    const of = KNOWN_TOTALS[src];
+    const pct = Math.min(100, Math.round(have / of * 100));
+    const fill = pct >= 90 ? "var(--grn)" : pct >= 50 ? "var(--acc)" : "var(--mut)";
+    return `<div class="statrow librow">
+      <div class="statlabel">${esc(src)}</div>
+      <div class="stattrack"><div class="statfill" style="width:${pct}%;background:${fill}"></div></div>
+      <div class="statval">${have.toLocaleString()} <span class="statof">/ ~${of.toLocaleString()} (${pct}%)</span></div>
+    </div>`;
+  }).join("");
   const typeRows = Object.entries(byType).sort((a,b)=>b[1]-a[1]).map(([k,v])=>[typeLabel[k]||esc(k),v]);
   const hostPct = totalFiles?Math.round(hostedFiles/totalFiles*100):0;
 
@@ -735,8 +761,12 @@ function renderStats(){
     <h2 class="stath2">By category</h2>
     <div class="statgroup">${bar(catRows)}</div>
 
-    <h2 class="stath2">Top sources</h2>
-    <p class="statnote">We're multi-source by design. Every item credits where it came from.</p>
+    <h2 class="stath2">Library coverage</h2>
+    <p class="statnote">How much of each source library we've indexed so far. Scraping is ongoing — numbers update as the index rebuilds.</p>
+    <div class="statgroup">${libProgress}</div>
+
+    <h2 class="stath2">All sources</h2>
+    <p class="statnote">Every item credits where it came from.</p>
     <div class="statgroup">${bar(srcRows)}</div>
 
     <div class="statcta">
