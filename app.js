@@ -209,7 +209,7 @@ async function ensureBody(b){
   if(!b.hasBody){ b.body=""; return ""; }
   try{
     const txt = await fetch(`${RAW}/${b.path.split("/").map(encodeURIComponent).join("/")}`).then(r=>r.ok?r.text():"");
-    b.body = parseFront(txt).body || "";
+    b.body = parseFront(txt).body.replace(/^>\s*\*Translated to English from[^\n]*\n?\n?/m, "").trimStart() || "";
   }catch(e){ b.body=""; }
   return b.body;
 }
