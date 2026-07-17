@@ -62,6 +62,13 @@ function fileLabel(f){
   return (f.type||"FILE").toUpperCase();
 }
 
+function humanSize(n){
+  if(!n || n<0) return "";
+  const u=["B","KB","MB","GB","TB"]; let i=0;
+  while(n>=1024 && i<u.length-1){ n/=1024; i++; }
+  return (i===0? Math.round(n) : n.toFixed(1))+" "+u[i];
+}
+
 async function loadTree(){
   const head = await fetch(`${API}/commits/${BRANCH}`).then(r=>r.json());
   const sha = head.sha;
@@ -295,7 +302,8 @@ async function renderBook(slug){
 
   const files = b.files.map(f=>{
     const cls = f.hosted?' class="host"':'';
-    const tag = f.hosted?" · self-hosted":"";
+    const sz = f.size?humanSize(f.size):"";
+    const tag = (f.hosted?" · self-hosted":"") + (sz?" · "+sz:"");
     return `<a${cls} href="${esc(f.url)}" target="_blank" rel="noopener noreferrer">${esc(fileLabel(f))}<span class="fn">${esc(f.name)}${tag}</span></a>`;
   }).join("");
   const tags = b.tags.map(t=>`<span class="tag">${esc(t)}</span>`).join("");
@@ -404,7 +412,7 @@ function renderStats(){
   el("list").className = "detail";
   const total = books.length;
   const byType = {}, byCat = {}, bySrc = {}, byState = {full:0,partial:0,none:0};
-  let hostedFiles=0, totalFiles=0, images=0, atRisk=0;
+  let hostedFiles=0, totalFiles=0, images=0, atRisk=0, hostedBytes=0;
   books.forEach(b=>{
     const t = b.pageType || "other";
     byType[t]=(byType[t]||0)+1;
@@ -412,7 +420,7 @@ function renderStats(){
     const s = b.sourceName || "unknown";
     bySrc[s]=(bySrc[s]||0)+1;
     if(byState[b.state]!==undefined) byState[b.state]++;
-    (b.files||[]).forEach(f=>{ totalFiles++; if(f.hosted) hostedFiles++; });
+    (b.files||[]).forEach(f=>{ totalFiles++; if(f.hosted){ hostedFiles++; hostedBytes += (f.size||0); } });
     images += (b.images||[]).length;
     if(b.atRisk) atRisk++;
   });
@@ -441,6 +449,7 @@ function renderStats(){
       ${bigStat(total.toLocaleString(),"total items")}
       ${bigStat(catRows.length,"categories")}
       ${bigStat(hostedFiles.toLocaleString(),"self-hosted files")}
+      ${bigStat(humanSize(hostedBytes)||"–","of archived files")}
       ${bigStat(images.toLocaleString(),"images archived")}
       ${bigStat(atRisk,"flagged at risk")}
       ${bigStat(Object.keys(bySrc).length,"distinct sources")}
@@ -452,7 +461,7 @@ function renderStats(){
     <h2 class="stath2">How much we actually hold</h2>
     <p class="statnote">Honesty matters. "Full copy" = we archived the whole thing. "Linked only" = we point you to the real source and never pretend it's ours.</p>
     <div class="statgroup">${bar([['<i class="fa-solid fa-circle-check fa-inline" style="color:var(--grn)"></i>Full copy',byState.full],['<i class="fa-solid fa-circle-half-stroke fa-inline" style="color:var(--amb)"></i>Partial',byState.partial],['<i class="fa-regular fa-circle fa-inline" style="color:var(--mut)"></i>Linked only',byState.none]])}</div>
-    <p class="statnote">${hostedFiles.toLocaleString()} of ${totalFiles.toLocaleString()} files (${hostPct}%) are physically mirrored on our servers, safe from takedown.</p>
+    <p class="statnote">${hostedFiles.toLocaleString()} of ${totalFiles.toLocaleString()} files (${hostPct}%) are physically mirrored on our servers${hostedBytes?` - <strong>${humanSize(hostedBytes)}</strong> of books, PDFs and EPUBs`:""}, safe from takedown. <a href="${ZIPBALL}">Download the whole archive as a zip <i class="fa-solid fa-file-zipper fa-inline"></i></a></p>
 
     <h2 class="stath2">By category</h2>
     <div class="statgroup">${bar(catRows)}</div>
