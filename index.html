@@ -79,6 +79,19 @@ padding:6px 14px;border-radius:20px;font-size:13px;cursor:pointer;transition:.15
 padding:4px 11px;border-radius:16px;font-size:12px;cursor:pointer;transition:.15s}
 .cats button:hover{border-color:var(--grn);color:var(--tx)}
 .cats button.on{border-color:var(--grn);color:var(--grn);background:rgba(93,176,117,.1)}
+.langs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:18px;margin-top:-8px}
+.langs button{background:transparent;border:1px solid var(--bd);color:var(--mut);
+padding:4px 10px;border-radius:20px;cursor:pointer;font-size:12px;transition:border-color .15s,color .15s}
+.langs button:hover{border-color:#f97316;color:var(--tx)}
+.langs button.on{border-color:#f97316;color:#f97316;background:rgba(249,115,22,.1)}
+.sort-row{display:flex;align-items:center;gap:6px;margin-bottom:14px;margin-top:-6px}
+.sort-row select{background:var(--surf);border:1px solid var(--bd);color:var(--mut);
+  padding:3px 8px;border-radius:6px;font-size:12px;cursor:pointer;outline:none;
+  appearance:none;-webkit-appearance:none;padding-right:22px;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23837b74'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 6px center}
+.sort-row select:hover{border-color:var(--mut);color:var(--tx)}
+.sort-row select:focus{border-color:#f97316}
 .count{color:var(--mut);font-size:13px;margin-bottom:16px}
 /* recently added strip */
 .recent{margin:2px 0 22px}
@@ -316,6 +329,16 @@ font-weight:600;cursor:pointer;transition:.15s;font-family:inherit}
 <button data-f="saved"><i class="fa-solid fa-bookmark fa-inline"></i>Saved</button>
 </div>
 <div class="cats" id="cats"></div>
+<div class="langs" id="langs"></div>
+<div class="sort-row" id="sortRow">
+<i class="fa-solid fa-arrow-up-wide-short fa-inline" style="color:var(--mut);font-size:12px"></i>
+<select id="sortSel" aria-label="Sort by">
+<option value="alpha">A - Z</option>
+<option value="newest">Newest added</option>
+<option value="oldest">Oldest added</option>
+<option value="lang">Language</option>
+</select>
+</div>
 <div class="count" id="count"></div>
 </div>
 <div class="recent" id="recent" style="display:none"></div>
@@ -360,6 +383,6 @@ font-weight:600;cursor:pointer;transition:.15s;font-family:inherit}
 <span class="k161">Brought to you by <strong>Kommando 161</strong> <span class="red">⚑</span></span>
 </footer>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/lunr.js/2.3.9/lunr.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-<script src="/app.js?v=27"></script>
+<script src="/app.js?v=28"></script>
 </body>
 </html>

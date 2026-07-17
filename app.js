@@ -9,7 +9,8 @@ const ZIPBALL = `https://github.com/${OWNER}/${REPO}/archive/refs/heads/${BRANCH
 const ORIGIN = (typeof location!=="undefined" && location.origin && location.origin.startsWith("http")) ? location.origin : "https://theopenstacks.apolochees.me";
 
 const el = id => document.getElementById(id);
-let books = [], fState = "all", fCat = null, bySlug = {};
+let books = [], fState = "all", fCat = null, fLang = null, fSort = "alpha", bySlug = {};
+const LANG_NAMES = {en:"English",de:"Deutsch",fr:"Francais",es:"Espanol",it:"Italiano",pt:"Portugues",zh:"Chinese",ru:"Russian",bg:"Bulgarian",nl:"Nederlands",pl:"Polski"};
 
 // ---- bookmarks (localStorage) ----
 const BMK_KEY = "os_bookmarks";
@@ -161,7 +162,7 @@ function renderList(){
   const q = el("q").value.toLowerCase().trim();
   // Recently-added strip only makes sense on the unfiltered home view.
   const rc = el("recent");
-  if(rc) rc.style.display = (!q && fState==="all" && !fCat) ? "" : "none";
+  if(rc) rc.style.display = (!q && fState==="all" && !fCat && !fLang) ? "" : "none";
   // Full-text rank set (Lunr) - only when a query is present AND index is ready.
   let ftRank = null;
   if(q && lunrIdx){
@@ -175,6 +176,7 @@ function renderList(){
     else if(fState==="risk"){ if(!b.atRisk) return false; }
     else if(fState!=="all" && b.state!==fState) return false;
     if(fCat && b.category!==fCat) return false;
+    if(fLang && (b.language||"en")!==fLang) return false;
     if(q){
       // Lunr full-text match (title/author/tags/BODY) OR cheap metadata substring fallback.
       const metaHit = (b.title+" "+b.author+" "+b.tags.join(" ")).toLowerCase().includes(q);
@@ -189,6 +191,15 @@ function renderList(){
       const ra = ftRank.has(a.slug)?ftRank.get(a.slug):1e9;
       const rb = ftRank.has(b.slug)?ftRank.get(b.slug):1e9;
       return ra!==rb ? ra-rb : (a.title.toLowerCase()<b.title.toLowerCase()?-1:1);
+    });
+  } else if(fSort === "newest") {
+    view.sort((a,b)=>(b.added||0)-(a.added||0));
+  } else if(fSort === "oldest") {
+    view.sort((a,b)=>(a.added||0)-(b.added||0));
+  } else if(fSort === "lang") {
+    view.sort((a,b)=>{
+      const la = a.language||"en", lb = b.language||"en";
+      return la!==lb ? la.localeCompare(lb) : a.title.toLowerCase().localeCompare(b.title.toLowerCase());
     });
   } else {
     view.sort((a,b)=>a.title.toLowerCase()<b.title.toLowerCase()?-1:1);
@@ -671,6 +682,25 @@ function buildCats(){
   }));
 }
 
+// Language filter pills (orange), only shown when >1 language present.
+function buildLangs(){
+  const host = el("langs");
+  if(!host) return;
+  const counts = {};
+  books.forEach(b=>{ const l=b.language||"en"; counts[l]=(counts[l]||0)+1; });
+  const codes = Object.keys(counts);
+  if(codes.length<2){ host.innerHTML=""; return; }
+  host.innerHTML = `<span style="color:var(--mut);font-size:12px;align-self:center;margin-right:2px"><i class="fa-solid fa-language fa-inline"></i>Language:</span>`
+    + codes.sort((a,b)=>counts[b]-counts[a]).map(c=>
+    `<button data-l="${esc(c)}">${esc(LANG_NAMES[c]||c)} <span style="opacity:.6">${counts[c]}</span></button>`).join("");
+  host.querySelectorAll("button").forEach(btn=>btn.addEventListener("click",()=>{
+    const l = btn.dataset.l;
+    if(fLang===l){fLang=null;btn.classList.remove("on");}
+    else{host.querySelectorAll("button").forEach(x=>x.classList.remove("on"));btn.classList.add("on");fLang=l;}
+    resetAndRender();
+  }));
+}
+
 (async function(){
   el("dlall").href = ZIPBALL;
   const dlf = el("dlallfoot"); if(dlf) dlf.href = ZIPBALL;
@@ -692,6 +722,7 @@ function buildCats(){
     const total = books.reduce((n,b)=>n+b.files.length,0);
     el("sub").innerHTML = `${books.length} items · <span class="badge">${hosted}</span>/${total} files self-hosted · <a href="${API.replace('api.github.com/repos','github.com')}/commit/${sha}" target="_blank" rel="noopener noreferrer">@${sha.slice(0,7)}</a>`;
     buildCats();
+    buildLangs();
     renderRecent();
     // typing triggers a lazy Lunr build (once); re-render when the index lands
     el("q").addEventListener("input", ()=>{
@@ -714,6 +745,7 @@ function buildCats(){
       document.querySelectorAll(".filters button").forEach(x=>x.classList.remove("on"));
       btn.classList.add("on"); fState=btn.dataset.f; resetAndRender();
     }));
+    el("sortSel").addEventListener("change", ()=>{ fSort=el("sortSel").value; resetAndRender(); });
     window.addEventListener("hashchange", route);
     window.addEventListener("popstate", route);
     // intercept internal nav -> clean paths via History API (no hash, no full reload)
