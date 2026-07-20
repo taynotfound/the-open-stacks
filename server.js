@@ -9,18 +9,14 @@ const app = express();
 const PORT = process.env.PORT || 4200;
 const MONGODB_URI = process.env.MONGODB_URI;
 const cache = new NodeCache({ stdTTL: 300 });
-let db = null;
+// ponytail: single persistent client, driver handles pool + reconnects
+const client = new MongoClient(MONGODB_URI, { serverSelectionTimeoutMS: 5000 });
+const db = client.db('open-stacks');
 
 async function connectDB() {
-  try {
-    const client = new MongoClient(MONGODB_URI);
-    await client.connect();
-    db = client.db('open-stacks');
-    db.collection('books').createIndex({ title: 'text', author: 'text', desc: 'text', tags: 'text', body: 'text' }).catch(() => {});
-    console.log('Connected to MongoDB');
-  } catch (err) {
-    console.error('MongoDB connection failed:', err.message);
-  }
+  await client.connect();
+  db.collection('books').createIndex({ title: 'text', author: 'text', desc: 'text', tags: 'text', body: 'text' }).catch(() => {});
+  console.log('Connected to MongoDB');
 }
 
 app.set('view engine', 'ejs');
