@@ -215,7 +215,10 @@ router.get('/book/:slug', async (req, res, next) => {
 
   let body = null, toc = [];
 
-  if (book.hasBody && book.path) {
+  if (book.hasBody && book.body) {
+    // ponytail: body stored directly in DB (scraped items) — just use it
+    body = mdToHtml(book.body);
+  } else if (book.hasBody && book.path) {
     const ck = `body:${slug}`;
     const cached = cache.get(ck);
     if (cached) { body = cached.html; toc = cached.toc; }
