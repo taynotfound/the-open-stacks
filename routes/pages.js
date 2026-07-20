@@ -351,7 +351,7 @@ router.post('/api/contribute', async (req, res) => {
   try {
     const ref = await ghGet('git/refs/heads/main');
     const sha = ref.object?.sha;
-    if (!sha) return res.status(500).json({ error: 'Could not read repo HEAD.' });
+    if (!sha) return res.status(500).json({ error: 'Could not read repo HEAD.', debug: JSON.stringify(ref).slice(0,200) });
     await ghApi('POST', 'git/refs', { ref: `refs/heads/${branch}`, sha });
     await ghApi('PUT', `contents/${filePath}`, { message: `contribute: add "${title}"`, content: Buffer.from(mdFile).toString('base64'), branch });
     if (req.body.pdfBase64) {
