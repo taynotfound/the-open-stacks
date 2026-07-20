@@ -49,6 +49,7 @@ async function scrapeLang(db, lang) {
     console.log(`[A-Infos] ${lang} p${page}: +${pageInserted} new`);
     // if page returned <100 links we're at the end
     if (links.length < 100) break;
+    if (pageInserted === 0 && page > 1) { console.log(`[A-Infos] ${lang} no new items on p${page}, stopping`); break; }
     page++;
     await new Promise(r => setTimeout(r, 500));
   }
