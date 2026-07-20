@@ -174,12 +174,12 @@
             <a href="<%= url %>" target="_blank" rel="noopener" class="btn-download" title="<%= name %>"><%= ext %></a>
           <% }) %>
         </div>
-        <p style="font-size:0.72rem;color:var(--muted);margin-top:0.5rem">⚠ PDFs may load slowly on mobile. Consider reading the full text above.</p>
+
       </div>
       <% } %>
       <% } %>
 
-      <% if (body && !allSiblings.length) { %>
+      <% if (body && !allSiblings.length && book.language && book.language !== 'en' && book.language !== 'eng') { %>
       <div class="body-divider"></div>
 
       <div style="margin-bottom:1rem;display:flex;align-items:center;gap:0;">
