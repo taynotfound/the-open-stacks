@@ -163,3 +163,10 @@ router.get('/related/:slug', async (req, res) => {
 module.exports = router;
 
 
+
+router.get('/debug-book/:slug', async (req, res) => {
+  const { db } = res.locals;
+  if (!db) return res.json({ error: 'no db' });
+  const book = await db.collection('books').findOne({ slug: req.params.slug }, { projection: { slug: 1, hasBody: 1, bodyLen: { $strLenCP: { $ifNull: ['$body', ''] } }, path: 1 } }).catch(e => ({ error: e.message }));
+  res.json(book);
+});
