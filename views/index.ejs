@@ -33,28 +33,8 @@
   <link rel="alternate" type="application/rss+xml" title="The Open Stacks" href="/feed.xml">
 </head>
 <body>
-<nav class="nav">
-  <a href="/" class="nav-logo">
-    <img src="/logo.svg" alt="">
-    The Open Stacks
-    <span class="nav-logo-sub">by Kommando 161</span>
-  </a>
-  <div class="nav-search">
-    <div class="search-wrap">
-      <input type="text" id="search-input" placeholder="Search texts, authors, topics…" value="<%= q %>" autocomplete="off" spellcheck="false">
-      <div id="search-suggest" class="search-suggest"></div>
-    </div>
-  </div>
-  <div class="nav-right">
-    <button id="themeToggle" class="theme-toggle" title="Toggle light mode">☀</button>
-  </div>
-</nav>
-<script>
-const t=localStorage.theme==='light'?'light':'dark';
-document.documentElement.dataset.theme=t;
-document.getElementById('themeToggle').textContent=t==='light'?'☾':'☀';
-document.getElementById('themeToggle').addEventListener('click',()=>{const n=document.documentElement.dataset.theme==='light'?'dark':'light';document.documentElement.dataset.theme=n;localStorage.theme=n;document.getElementById('themeToggle').textContent=n==='light'?'☾':'☀';});
-</script>
+<%- include('_nav', { q, showSearch: true }) %>
+
 
 <% if (!q && !category && !source && page <= 1) { %>
 <div class="hero-banner">
@@ -68,11 +48,11 @@ document.getElementById('themeToggle').addEventListener('click',()=>{const n=doc
     </div>
     <div class="hero-stats">
       <div class="hstat">
-        <span class="hstat-n" id="liveTotal"><%= stats.total ? stats.total.toLocaleString() : '—' %></span>
+        <span class="hstat-n" id="liveTotal" data-count="<%= stats.total || 0 %>"><%= stats.total ? stats.total.toLocaleString() : '—' %></span>
         <span class="hstat-l">texts <span id="liveArrow" class="live-arrow"></span></span>
       </div>
       <div class="hstat-sep"></div>
-      <div class="hstat"><span class="hstat-n"><%= stats.sources || '—' %></span><span class="hstat-l">sources</span></div>
+      <div class="hstat"><span class="hstat-n" data-count="<%= stats.sources || 0 %>"><%= stats.sources || '—' %></span><span class="hstat-l">sources</span></div>
       <div class="hstat-sep"></div>
       <div class="hstat"><span class="hstat-n">free</span><span class="hstat-l">always</span></div>
     </div>
@@ -147,7 +127,7 @@ document.getElementById('themeToggle').addEventListener('click',()=>{const n=doc
 </div>
 <div class="filter-bar-wrap filter-bar-langs">
 <div class="filter-bar filter-bar-secondary">
-  <span class="pill-sep" style="font-size:0.7rem;opacity:.5;flex-shrink:0">🌐</span>
+  <span class="pill-sep" style="font-size:0.7rem;opacity:.5;flex-shrink:0"></span>
   <a href="/?<%= new URLSearchParams(Object.assign({}, q?{q}:{}, category?{category}:{}, source?{source}:{})).toString() %>" class="pill<%= !lang ? ' active' : '' %>">All</a>
   <% langs.forEach(l => { %>
   <a href="/?<%= new URLSearchParams(Object.assign({}, q?{q}:{}, category?{category}:{}, source?{source}:{}, {lang:l.code})).toString() %>"
@@ -214,7 +194,8 @@ document.getElementById('themeToggle').addEventListener('click',()=>{const n=doc
   function update(){
     fetch('/api/stats').then(r=>r.json()).then(d=>{
       const n=d.total||0;
-      if(el) el.textContent=n.toLocaleString();
+      const prev=parseInt(el.dataset.from||el.textContent.replace(/,/g,'')||'0');
+      if(el && n!==prev) countUp(el, n);
       if(!baseline){ baseline=n; localStorage.setItem(SK,n); }
       if(arrow && n>baseline){
         const pct=Math.round((n-baseline)/baseline*100);

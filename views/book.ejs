@@ -40,17 +40,7 @@
   <link rel="stylesheet" href="/style.css">
 </head>
 <body>
-<nav class="nav">
-  <a href="/" class="nav-logo">
-    <img src="/logo.svg" alt="The Open Stacks">
-    The Open Stacks
-    <span class="nav-logo-sub">by Kommando 161</span>
-  </a>
-  <div class="nav-right">
-    <button id="themeToggle" class="theme-toggle" title="Toggle light mode">☀</button>
-    <%= stats.total ? stats.total.toLocaleString() : '—' %> texts
-  </div>
-</nav>
+<%- include('_nav', { showSearch: false }) %>
 
 <main class="book-page">
   <div class="book-page-inner">
@@ -226,14 +216,8 @@
 
 <script>
 // Theme toggle
-const toggle = document.getElementById('themeToggle');
-if (toggle) {
-  const apply = t => { document.documentElement.dataset.theme = t; localStorage.theme = t; toggle.textContent = t === 'light' ? '☾' : '☀'; };
-  apply(localStorage.theme === 'light' ? 'light' : 'dark');
-  toggle.addEventListener('click', () => apply(document.documentElement.dataset.theme === 'light' ? 'dark' : 'light'));
-}
 
-<% if (body && book.language && book.language !== 'en') { %>
+<% if (body) { %>
 const BOOK_LANG = '<%= book.language %>';
 const TX_CACHE_KEY = 'os_tx_<%= book.slug %>';
 const txBtn = document.getElementById('txBtn');
