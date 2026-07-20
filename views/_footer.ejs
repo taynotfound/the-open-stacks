@@ -1,0 +1,39 @@
+<footer>
+  <div class="foot-creed">
+    <span class="red">☭ ⚑ Ⓐ</span> <strong>Solidarity forever.</strong> A living mirror for preservation and free access — built to outlast takedowns.
+  </div>
+  <div class="foot-cols">
+    <div class="foot-col">
+      <h4>Sources</h4>
+      <a href="https://theanarchistlibrary.org" target="_blank" rel="noopener">The Anarchist Library</a>
+      <a href="https://libcom.org/book" target="_blank" rel="noopener">libcom.org</a>
+      <a href="https://www.marxists.org" target="_blank" rel="noopener">Marxists.org</a>
+      <a href="https://www.gutenberg.org" target="_blank" rel="noopener">Project Gutenberg</a>
+    </div>
+    <div class="foot-col">
+      <h4>The Project</h4>
+      <a href="/about">About &amp; mission</a>
+      <a href="/stats">Library stats</a>
+      <a href="/contribute">Contribute a text</a>
+      <a href="/feed.xml">RSS feed</a>
+      <a href="/feed/new.xml">New additions feed</a>
+      <a href="/reading-list">Reading list</a>
+      <a href="/random">Random text</a>
+      <a href="/opds.xml">OPDS catalog (e-readers)</a>
+      <a href="https://github.com/taynotfound/open-stacks-library" target="_blank" rel="noopener">Data repo (GitHub)</a>
+      <a href="https://github.com/taynotfound/the-open-stacks" target="_blank" rel="noopener">Fork this site</a>
+    </div>
+    <div class="foot-col">
+      <h4>How it works</h4>
+      <span class="foot-note">Drop a Markdown file in the repo, push, and it appears here automatically. Every item credits its origin — nothing is hidden or claimed as ours.</span>
+    </div>
+    <div class="foot-col">
+      <h4>Stats</h4>
+      <span class="foot-note"><strong><%= stats.total ? stats.total.toLocaleString() : '—' %></strong> texts indexed<br><strong><%= stats.withBody ? stats.withBody.toLocaleString() : '—' %></strong> with full text<br><strong><%= stats.sources || '—' %></strong> source collections</span>
+    </div>
+  </div>
+  <div class="foot-bottom">
+    <span class="foot-legal">Texts remain © their authors / under each source's terms. We keep copies of what's at risk. Take what you need, give what you can.</span>
+    <span class="foot-k161">Brought to you by <strong>Kommando 161</strong> <span class="sym">⚑</span></span>
+  </div>
+</footer>

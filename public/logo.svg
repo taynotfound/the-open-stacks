@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" fill="none">
+  <!-- Open book -->
+  <path d="M24 10 C18 10 10 12 10 16 L10 38 C10 38 16 36 24 36 C32 36 38 38 38 38 L38 16 C38 12 30 10 24 10Z" fill="none"/>
+  <path d="M24 10 L24 36" stroke="#c8392b" stroke-width="1.5"/>
+  <!-- Left page -->
+  <path d="M24 12 C20 11 13 12.5 11 15 L11 37 C13 35 20 33.5 24 34Z" fill="#1e1e1e" stroke="#c8392b" stroke-width="1.2"/>
+  <!-- Right page -->
+  <path d="M24 12 C28 11 35 12.5 37 15 L37 37 C35 35 28 33.5 24 34Z" fill="#1e1e1e" stroke="#c8392b" stroke-width="1.2"/>
+  <!-- Left lines -->
+  <line x1="13.5" y1="19" x2="22" y2="18" stroke="#c8392b" stroke-width="0.8" opacity="0.6"/>
+  <line x1="13.5" y1="22" x2="22" y2="21" stroke="#c8392b" stroke-width="0.8" opacity="0.6"/>
+  <line x1="13.5" y1="25" x2="22" y2="24" stroke="#c8392b" stroke-width="0.8" opacity="0.4"/>
+  <line x1="13.5" y1="28" x2="22" y2="27" stroke="#c8392b" stroke-width="0.8" opacity="0.4"/>
+  <!-- Right lines -->
+  <line x1="26" y1="18" x2="34.5" y2="19" stroke="#c8392b" stroke-width="0.8" opacity="0.6"/>
+  <line x1="26" y1="21" x2="34.5" y2="22" stroke="#c8392b" stroke-width="0.8" opacity="0.6"/>
+  <line x1="26" y1="24" x2="34.5" y2="25" stroke="#c8392b" stroke-width="0.8" opacity="0.4"/>
+  <line x1="26" y1="27" x2="34.5" y2="28" stroke="#c8392b" stroke-width="0.8" opacity="0.4"/>
+  <!-- Anarchist A on spine -->
+  <text x="24" y="9" text-anchor="middle" fill="#c8392b" font-size="7" font-family="serif" font-weight="bold">Ⓐ</text>
+</svg>
