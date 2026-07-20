@@ -238,9 +238,10 @@ router.get('/book/:slug', async (req, res, next) => {
       } catch { iaFiles = {}; }
     }
     const meta = iaFiles.metadata || {};
-    const rawFiles = (iaFiles.files || []).filter(f =>
-      /\.(mp3|ogg|aac|flac|opus|pdf|epub|txt|djvu|mp4|ogv)$/i.test(f.name)
-    ).map(f => ({ url: `https://archive.org/download/${identifier}/${f.name}`, name: f.name, format: f.format }));
+    const JUNK = /(_files\.xml|_meta\.|_spectrogram\.|_speech_|\.afpk|\.asr\.|__ia_thumb|\.sqlite|\.torrent|\.xml|\.json|\.png|\.jpg|\.jpeg|\.gif|\.sha1|\.md5)$/i;
+    const rawFiles = (iaFiles.files || [])
+      .filter(f => !f.private && !JUNK.test(f.name) && /\.(mp3|ogg|aac|flac|opus|mp4|ogv|webm|pdf|epub|txt|djvu)$/i.test(f.name))
+      .map(f => ({ url: `https://archive.org/download/${identifier}/${encodeURIComponent(f.name)}`, name: f.name, format: f.format }));
     if (rawFiles.length) book = { ...book, files: rawFiles };
     if (meta.mediatype === 'audio' && book.category === 'theory-and-politics') book = { ...book, category: 'audio' };
 

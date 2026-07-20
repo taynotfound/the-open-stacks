@@ -104,20 +104,44 @@
       <% if (book.files && book.files.length > 0) { %>
       <%
         const AUDIO_EXT = /\.(mp3|ogg|aac|flac|opus)$/i;
-        const MIME = {mp3:'audio/mpeg',ogg:'audio/ogg',aac:'audio/aac',flac:'audio/flac',opus:'audio/ogg'};
-        // group by base name → pick best format per track (prefer mp3)
+        const VIDEO_EXT = /\.(mp4|ogv|webm)$/i;
+        const AUDIO_MIME = {mp3:'audio/mpeg',ogg:'audio/ogg',aac:'audio/aac',flac:'audio/flac',opus:'audio/ogg'};
+        const VIDEO_MIME = {mp4:'video/mp4',ogv:'video/ogg',webm:'video/webm'};
+        // group audio tracks by base name, prefer mp3
         const trackMap = {};
+        // group video by base name, prefer mp4
+        const videoMap = {};
         book.files.forEach(f => {
           const url = typeof f==='string'?f:(f.url||f);
           const name = (f.name||url.split('/').pop());
           const ext = (name.split('.').pop()||'').toLowerCase();
-          if (!AUDIO_EXT.test(name)) return;
           const base = name.replace(/\.[^.]+$/, '');
-          if (!trackMap[base] || ext==='mp3') trackMap[base] = { url, name, ext };
+          if (AUDIO_EXT.test(name)) {
+            if (!trackMap[base] || ext==='mp3') trackMap[base] = { url, name, ext };
+          } else if (VIDEO_EXT.test(name)) {
+            if (!videoMap[base] || ext==='mp4') videoMap[base] = { url, name, ext };
+          }
         });
         const tracks = Object.values(trackMap);
-        const nonAudio = book.files.filter(f => { const u=typeof f==='string'?f:(f.url||f); return !AUDIO_EXT.test((f.name||u.split('/').pop())); });
+        const videos = Object.values(videoMap);
+        const nonMedia = book.files.filter(f => {
+          const n = (f.name||(f.url||f).split('/').pop());
+          return !AUDIO_EXT.test(n) && !VIDEO_EXT.test(n);
+        });
       %>
+      <% if (videos.length) { %>
+      <div class="book-player">
+        <span class="section-label">Watch</span>
+        <% videos.forEach(v => { %>
+        <div style="margin-top:.5rem">
+          <% if (videos.length > 1) { %><small style="color:var(--muted);display:block;margin-bottom:.2rem"><%= v.name %></small><% } %>
+          <video controls preload="none" style="width:100%;border-radius:6px;background:#000">
+            <source src="<%= v.url %>" type="<%= VIDEO_MIME[v.ext]||'video/mp4' %>">
+          </video>
+        </div>
+        <% }) %>
+      </div>
+      <% } %>
       <% if (tracks.length) { %>
       <div class="book-player">
         <span class="section-label">Listen</span>
@@ -125,17 +149,17 @@
         <div style="margin-top:.5rem">
           <% if (tracks.length > 1) { %><small style="color:var(--muted);display:block;margin-bottom:.2rem"><%= t.name %></small><% } %>
           <audio controls preload="none" style="width:100%">
-            <source src="<%= t.url %>" type="<%= MIME[t.ext]||'audio/mpeg' %>">
+            <source src="<%= t.url %>" type="<%= AUDIO_MIME[t.ext]||'audio/mpeg' %>">
           </audio>
         </div>
         <% }) %>
       </div>
       <% } %>
-      <% if (nonAudio.length) { %>
+      <% if (nonMedia.length) { %>
       <div class="book-downloads">
         <span class="section-label">Files</span>
         <div class="download-row">
-          <% nonAudio.forEach(f => { const url=typeof f==='string'?f:(f.url||f); const name=f.name||url.split('/').pop(); const ext=(url.split('?')[0].split('.').pop()||'FILE').toUpperCase(); %>
+          <% nonMedia.forEach(f => { const url=typeof f==='string'?f:(f.url||f); const name=f.name||url.split('/').pop(); const ext=(name.split('?')[0].split('.').pop()||'FILE').toUpperCase(); %>
             <a href="<%= url %>" target="_blank" rel="noopener" class="btn-download" title="<%= name %>"><%= ext %></a>
           <% }) %>
         </div>
