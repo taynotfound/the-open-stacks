@@ -58,13 +58,21 @@ document.getElementById('themeToggle').addEventListener('click',()=>{const n=doc
 </div>
 <% } %>
 
+<div class="filter-bar-wrap">
 <div class="filter-bar">
-  <a href="/" class="pill<%= !category && !source ? ' active' : '' %>">All</a>
+  <a href="/" class="pill<%= !category && !source && !req.query.type ? ' active' : '' %>">All</a>
+  <span class="pill-sep">📄</span>
+  <a href="/?type=text" class="pill<%= req.query.type==='text' ? ' active' : '' %>">Text</a>
+  <a href="/?type=audio" class="pill<%= req.query.type==='audio' ? ' active' : '' %>">Audio</a>
+  <a href="/?type=video" class="pill<%= req.query.type==='video' ? ' active' : '' %>">Video</a>
+  <span class="pill-sep">·</span>
   <% categories.forEach(cat => { %>
     <a href="/?category=<%= encodeURIComponent(cat) %><%= q ? '&q='+encodeURIComponent(q) : '' %>"
        class="pill<%= category === cat ? ' active' : '' %>"><%= cat.replace(/-/g,' ') %></a>
   <% }) %>
 </div>
+</div>
+<div class="filter-bar-wrap">
 <div class="filter-bar filter-bar-secondary">
   <a href="/random" class="pill pill-random">⚄ Random</a>
   <% sources.forEach(s => { %>
@@ -76,6 +84,7 @@ document.getElementById('themeToggle').addEventListener('click',()=>{const n=doc
   <a href="/?<%= new URLSearchParams(Object.assign({}, q?{q}:{}, category?{category}:{}, source?{source}:{}, {lang:l.code})).toString() %>"
      class="pill<%= lang===l.code ? ' active' : '' %>"><%= l.label %></a>
   <% }) %>
+</div>
 </div>
 
 <% if (error) { %><div class="error-banner" style="margin:1rem 1.5rem"><%= error %></div><% } %>
@@ -92,11 +101,13 @@ document.getElementById('themeToggle').addEventListener('click',()=>{const n=doc
     <% books.forEach(book => { %>
     <a href="/book/<%= book.slug %>" class="book-card">
       <div class="book-cover">
+        <% const typeIcon = book.category==='audio'?'♪':book.category==='video'?'▶':null; %>
         <% if (book.cover) { %>
           <img src="<%= book.cover %>" alt="" loading="lazy">
         <% } else { %>
-          <div class="cover-placeholder<%= book.category==='audio'?' cover-audio':'' %>"><span class="cover-initial"><%= book.category==='audio' ? '♪' : (book.title||'?')[0].toUpperCase() %></span></div>
+          <div class="cover-placeholder<%= book.category==='audio'?' cover-audio':book.category==='video'?' cover-video':'' %>"><span class="cover-initial"><%= typeIcon || (book.title||'?')[0].toUpperCase() %></span></div>
         <% } %>
+        <% if (typeIcon && book.cover) { %><span class="cover-type-badge"><%= typeIcon %></span><% } %>
       </div>
       <div class="book-info">
         <div class="book-title-card"><%= book.title %></div>
@@ -139,5 +150,27 @@ fetch('/api/news').then(r=>r.json()).then(items=>{
 
 <%- include('_footer', { stats }) %>
 <script src="/app.js"></script>
+<script>
+document.querySelectorAll('.filter-bar-wrap').forEach(wrap => {
+  const bar = wrap.querySelector('.filter-bar');
+  if (!bar) return;
+  function update() {
+    const canScroll = bar.scrollWidth > bar.clientWidth + 4;
+    const atEnd = bar.scrollLeft + bar.clientWidth >= bar.scrollWidth - 4;
+    wrap.classList.toggle('can-scroll', canScroll);
+    wrap.classList.toggle('at-end', atEnd);
+  }
+  update();
+  bar.addEventListener('scroll', update, { passive: true });
+  window.addEventListener('resize', update, { passive: true });
+  // scroll on hover with mouse wheel redirect
+  wrap.addEventListener('wheel', e => {
+    if (Math.abs(e.deltaX) < Math.abs(e.deltaY)) {
+      e.preventDefault();
+      bar.scrollBy({ left: e.deltaY * 2, behavior: 'smooth' });
+    }
+  }, { passive: false });
+});
+</script>
 </body>
 </html>
