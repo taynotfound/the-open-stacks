@@ -28,14 +28,19 @@ async function scrapeLang(db, lang) {
     for (const link of links) {
       const slug = `ainfos-${lang}-${link.replace('.html', '')}`;
       if (await db.collection('books').findOne({ slug }, { projection: { _id: 1 } })) continue;
-      let body = ''; try { body = await get(base + link); await new Promise(r => setTimeout(r, 600)); } catch { continue; }
-      const title = (body.match(/<title>([^<]+)<\/title>/i) || [])[1]?.replace(/\s*-\s*A-Infos.*/i, '').trim() || link;
-      const text = body.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+      const html = await get(base + link).catch(() => null);
+      if (!html) continue;
+      await new Promise(r => setTimeout(r, 600));
+      const title = (html.match(/<title>([^<]+)<\/title>/i) || [])[1]?.replace(/\s*-\s*A-Infos.*/i, '').trim() || link;
+      // extract article body — A-Infos wraps content in <pre> or <p> tags
+      const bodyHtml = (html.match(/<pre[^>]*>([\s\S]+?)<\/pre>/i) || html.match(/<body[^>]*>([\s\S]+?)<\/body>/i) || [])[1] || '';
+      const bodyText = bodyHtml.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+      const desc = bodyText.slice(0, 300);
       await upsert(db, {
         slug, title: title.slice(0, 200), author: 'A-Infos',
-        desc: text.slice(0, 300), source: base + link, sourceName: 'A-Infos',
+        desc, body: bodyText.slice(0, 100000), source: base + link, sourceName: 'A-Infos',
         category: 'anarchist-news', language: lang,
-        tags: ['anarchism', 'news'], hasBody: false, atRisk: false,
+        tags: ['anarchism', 'news'], hasBody: bodyText.length > 50, atRisk: false,
         cover: '', files: [], images: [], links: [], state: 'active', path: '', pageType: 'external',
       });
       inserted++;

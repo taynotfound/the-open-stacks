@@ -39,14 +39,19 @@ async function scrapeDir(db, url, depth = 0) {
       const slug = slugify('spunk-' + link.replace(BASE, '').replace(/\//g, '-').replace(/\.\w+$/, ''));
       const exists = await db.collection('books').findOne({ slug }, { projection: { _id: 1 } });
       if (exists) continue;
-      let body = ''; try { body = await get(link); } catch { continue; }
-      body = body.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
-      const title = (body.match(/^([^\n.]{10,80})/) || [])[1]?.trim() || slug;
+      let rawBody = ''; try { rawBody = await get(link); } catch { continue; }
+      const isHtml = /\.html?$/i.test(link);
+      const bodyText = isHtml
+        ? (rawBody.match(/<body[^>]*>([\s\S]+?)<\/body>/i) || [])[1]?.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim() || ''
+        : rawBody.replace(/\s+/g, ' ').trim();
+      const title = isHtml
+        ? (rawBody.match(/<title>([^<]+)<\/title>/i) || [])[1]?.trim() || slug
+        : (bodyText.match(/^([^\n.]{10,80})/) || [])[1]?.trim() || slug;
       await upsert(db, {
         slug, title: title.slice(0, 120), author: 'Unknown',
-        desc: body.slice(0, 300), source: link, sourceName: 'Spunk Library',
+        desc: bodyText.slice(0, 300), body: bodyText.slice(0, 100000), source: link, sourceName: 'Spunk Library',
         category: 'history', language: 'en',
-        tags: ['anarchism', 'history', 'spunk'], hasBody: false, atRisk: true,
+        tags: ['anarchism', 'history', 'spunk'], hasBody: bodyText.length > 50, atRisk: true,
         cover: '', files: [], images: [], links: [], state: 'active', path: '', pageType: 'external',
       });
       inserted++;
