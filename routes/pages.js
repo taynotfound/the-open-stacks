@@ -80,8 +80,11 @@ function extractToc(md) {
 function mdToHtml(text) {
   // normalize Windows line endings
   text = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
-  // fast path for large plain-text bodies (OCR etc) — skip heavy regex pipeline
-  if (text.length > 80000 && !text.includes('[[') && !text.startsWith('---')) {
+  // fast path for large plain-text bodies — skip heavy regex pipeline
+  if (text.length > 50000 && !text.startsWith('---')) {
+    // handle CrimethInc [[url caption]] embeds
+    text = text.replace(/\[\[(https?:\/\/[^\]\s]+)(?:\s+class:[^\s\]]+)?(?:\s+([^\]]+))?\]\]/g, (_, url, caption) =>
+      caption ? `\n\n![${caption.trim()}](${url})\n\n` : `![](${url})`);
     return text.split(/\n\n+/).map(p => {
       p = p.trim(); if (!p) return '';
       if (/^#{1,4}\s/.test(p)) {
