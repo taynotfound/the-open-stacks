@@ -96,6 +96,16 @@ function mdToHtml(text) {
     .join('\n');
 }
 
+const LANG_NAMES = {en:'English',de:'Deutsch',fr:'Français',es:'Español',ru:'Русский',zh:'中文',ar:'العربية',pt:'Português',it:'Italiano',nl:'Nederlands',pl:'Polski',sv:'Svenska',tr:'Türkçe',ja:'日本語',fa:'فارسی'};
+async function getLangs(db, cache) {
+  const hit = cache.get('langs');
+  if (hit) return hit;
+  const codes = db ? await db.collection('books').distinct('language').catch(() => []) : [];
+  const langs = codes.filter(Boolean).sort().map(c => ({ code: c, label: LANG_NAMES[c] || c.toUpperCase() }));
+  cache.set('langs', langs, 600);
+  return langs;
+}
+
 async function getStats(db, cache) {
   if (!db) return { total: 0, withBody: 0, sources: 0 };
   const hit = cache.get('stats');
@@ -125,7 +135,7 @@ router.get('/', async (req, res) => {
   const { db, cache } = res.locals;
   const { q, category, lang, page = 1 } = req.query;
   const limit = 24, skip = (parseInt(page) - 1) * limit;
-  const [stats, categories] = await Promise.all([getStats(db, cache), getCategories(db, cache)]);
+  const [stats, categories, langs] = await Promise.all([getStats(db, cache), getCategories(db, cache), getLangs(db, cache)]);
   let books = [], total = 0, error = null;
   if (db) {
     try {
@@ -141,7 +151,7 @@ router.get('/', async (req, res) => {
     } catch (e) { error = e.message; }
   } else { error = 'Database unavailable.'; }
   res.set('Cache-Control', 'no-store');
-  res.render('index', { books, total, page: parseInt(page), pages: Math.ceil(total / limit), stats, categories, q: q || '', category: category || '', lang: lang || '', error });
+  res.render('index', { books, total, page: parseInt(page), pages: Math.ceil(total / limit), stats, categories, langs, q: q || '', category: category || '', lang: lang || '', error });
 });
 
 router.get('/random', async (req, res) => {

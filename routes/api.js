@@ -16,13 +16,7 @@ router.get('/search', async (req, res) => {
   const lim = Math.min(parseInt(limit) || 24, 100);
   const skip = (parseInt(page) - 1) * lim;
   const filter = {};
-  if (q?.trim()) {
-    // try $text first (indexed), fall back to regex if index not ready
-    filter.$or = [
-      { title: { $regex: q.trim(), $options: 'i' } },
-      { author: { $regex: q.trim(), $options: 'i' } },
-    ];
-  }
+  if (q?.trim()) filter.$text = { $search: q.trim() };
   if (category) filter.category = category;
   if (lang) filter.language = lang;
   const col = db.collection('books');

@@ -67,8 +67,10 @@ document.getElementById('themeToggle').addEventListener('click',()=>{const n=doc
 <div class="filter-bar filter-bar-secondary">
   <a href="/random" class="pill pill-random">⚄ Random</a>
   <a href="/" class="pill<%= !lang ? ' active' : '' %>">All languages</a>
-  <a href="/?<%= new URLSearchParams({...q?{q}:{}, lang:'en'}).toString() %>" class="pill<%= lang==='en' ? ' active' : '' %>">English</a>
-  <a href="/?<%= new URLSearchParams({...q?{q}:{}, lang:'de'}).toString() %>" class="pill<%= lang==='de' ? ' active' : '' %>">Deutsch</a>
+  <% langs.forEach(l => { %>
+  <a href="/?<%= new URLSearchParams(Object.assign({}, q?{q}:{}, category?{category}:{}, {lang:l.code})).toString() %>"
+     class="pill<%= lang===l.code ? ' active' : '' %>"><%= l.label %></a>
+  <% }) %>
 </div>
 
 <% if (error) { %><div class="error-banner" style="margin:1rem 1.5rem"><%= error %></div><% } %>

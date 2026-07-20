@@ -3,9 +3,24 @@ const router = express.Router();
 
 function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
-router.get('/feed.xml', async (req, res) => {
+const BASE = 'https://theopenstacks.apolochees.me';
+
+router.get('/sitemap.xml', async (req, res) => {
   const { db, cache } = res.locals;
-  const books = db ? await db.collection('books').find({}).sort({ added: -1 }).limit(50).toArray() : [];
+  const hit = cache.get('sitemap');
+  if (hit) { res.set('Content-Type','application/xml'); return res.send(hit); }
+  const slugs = db ? await db.collection('books').find({}, { projection: { slug: 1 } }).toArray().catch(() => []) : [];
+  const u = (loc, pri, cf='weekly') => `  <url><loc>${loc}</loc><changefreq>${cf}</changefreq><priority>${pri}</priority></url>`;
+  const xml = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n`
+    + [u(`${BASE}/`,'1.0','daily'), u(`${BASE}/stats`,'0.6'), u(`${BASE}/contribute`,'0.5')]
+      .concat(slugs.map(b => u(`${BASE}/book/${encodeURIComponent(b.slug)}`,'0.7')))
+      .join('\n') + '\n</urlset>';
+  cache.set('sitemap', xml, 3600); // ponytail: 1hr TTL, fine for a sitemap
+  res.set('Content-Type','application/xml');
+  res.send(xml);
+});
+
+router.get('/feed.xml', async (req, res) => {
   res.set('Content-Type', 'application/rss+xml');
   res.send(`<?xml version="1.0" encoding="UTF-8"?>
 <rss version="2.0"><channel>
