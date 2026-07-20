@@ -18,12 +18,13 @@ function get(url) {
 
 async function scrapeLang(db, lang) {
   const base = `https://www.ainfos.ca/${lang}/`;
-  let inserted = 0, page = 0;
+  let inserted = 0, page = 0, pageInserted = 0;
   while (true) {
     const url = page === 0 ? base : `${base}?first=${page * 100}`;
     let html; try { html = await get(url); } catch (e) { console.error(`[A-Infos] ${lang} p${page}: ${e.message}`); break; }
     const links = [...html.matchAll(/href="(ainfos\d+\.html)"/g)].map(m => m[1]);
     if (!links.length) break;
+    pageInserted = 0;
     for (const link of links) {
       const slug = `ainfos-${lang}-${link.replace('.html', '')}`;
       if (await db.collection('books').findOne({ slug }, { projection: { _id: 1 } })) continue;
@@ -38,8 +39,9 @@ async function scrapeLang(db, lang) {
         cover: '', files: [], images: [], links: [], state: 'active', path: '', pageType: 'external',
       });
       inserted++;
+      pageInserted++;
     }
-    console.log(`[A-Infos] ${lang} p${page}: +${inserted} so far`);
+    console.log(`[A-Infos] ${lang} p${page}: +${pageInserted} new`);
     // if page returned <100 links we're at the end
     if (links.length < 100) break;
     page++;

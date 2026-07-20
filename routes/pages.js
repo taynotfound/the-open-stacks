@@ -185,7 +185,8 @@ router.get('/about', async (req, res) => {
   res.render('about', { stats });
 });
 
-router.get('/book/:slug', async (req, res) => {
+router.get('/book/:slug', async (req, res, next) => {
+  try {
   const { db, cache } = res.locals;
   if (!db) return res.status(503).render('book', { book: null, body: null, toc: [], stats: { total: 0 }, error: 'Database unavailable' });
   const stats = await getStats(db, cache);
@@ -226,13 +227,14 @@ router.get('/book/:slug', async (req, res) => {
       try {
         const http = require('https');
         iaFiles = await new Promise((res, rej) => {
-          http.get(`https://archive.org/metadata/${identifier}`, { headers: { 'User-Agent': 'OpenStacks/1.0' } }, r => {
+          const req = http.get(`https://archive.org/metadata/${identifier}`, { headers: { 'User-Agent': 'OpenStacks/1.0' } }, r => {
             let d = ''; r.on('data', c => d += c); r.on('end', () => {
-              try { const j = JSON.parse(d); res(j); } catch { res({}); }
+              try { res(JSON.parse(d)); } catch { res({}); }
             });
           }).on('error', () => res({}));
+          setTimeout(() => { req.destroy(); res({}); }, 4000); // ponytail: 4s hard timeout
         });
-        cache.set(ck, iaFiles, 3600);
+        cache.set(ck, iaFiles, Object.keys(iaFiles).length ? 3600 : 300); // ponytail: cache failures for 5min to avoid repeat hits on dead items
       } catch { iaFiles = {}; }
     }
     const meta = iaFiles.metadata || {};
@@ -242,19 +244,21 @@ router.get('/book/:slug', async (req, res) => {
     if (rawFiles.length) book = { ...book, files: rawFiles };
     if (meta.mediatype === 'audio' && book.category === 'theory-and-politics') book = { ...book, category: 'audio' };
 
-    // ponytail: fetch TXT body if available — reuse fetchRaw (handles ETag)
+    // ponytail: TXT body — serve from cache immediately; kick off background fetch if cold
     const txtFile = rawFiles.find(f => /\.txt$/i.test(f.name) && !/files\.xml|meta\.xml/i.test(f.name));
     if (txtFile && !body) {
-      const ck = `ia:body:${identifier}`;
-      const cached = cache.get(ck);
-      if (cached) { body = cached; }
-      else {
-        const result = await fetchRaw(txtFile.url).catch(() => null);
-        if (result?.body) {
-          const content = result.body.slice(0, 200000); // ponytail: cap at 200k chars
-          body = mdToHtml(content);
-          cache.set(ck, body, 7200);
-        }
+      const bck = `ia:body:${identifier}`;
+      const cached = cache.get(bck);
+      if (cached) {
+        body = cached;
+      } else {
+        // fire-and-forget: user gets page now, body appears on next load
+        fetchRaw(txtFile.url).then(result => {
+          if (result?.body) {
+            const content = result.body.slice(0, 200000);
+            cache.set(bck, mdToHtml(content), 7200);
+          }
+        }).catch(() => {});
       }
     }
   }
@@ -277,7 +281,8 @@ router.get('/book/:slug', async (req, res) => {
     }
   }
 
-  res.render('book', { book, body, toc, stats, related, error: null });
+  res.render('book', { book, body, toc, stats, related, translations, error: null });
+  } catch (e) { next(e); }
 });
 
 router.get('/stats', async (req, res) => {

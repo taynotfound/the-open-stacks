@@ -19,12 +19,20 @@ function slugify(s) {
 
 // upsert by slug; returns true if inserted, false if updated
 async function upsert(db, doc) {
-  const r = await db.collection('books').updateOne(
-    { slug: doc.slug },
-    { $setOnInsert: { added: Math.floor(Date.now() / 1000) }, $set: doc },
-    { upsert: true }
-  );
-  return !!r.upsertedCount;
+  for (let i = 0; i < 3; i++) {
+    try {
+      const r = await db.collection('books').updateOne(
+        { slug: doc.slug },
+        { $setOnInsert: { added: Math.floor(Date.now() / 1000) }, $set: doc },
+        { upsert: true }
+      );
+      return !!r.upsertedCount;
+    } catch (e) {
+      if (i === 2) throw e;
+      console.error(`[upsert] retry ${i+1}: ${e.message}`);
+      await new Promise(r => setTimeout(r, 2000 * (i + 1)));
+    }
+  }
 }
 
 module.exports = { getDb, closeDb, slugify, upsert };

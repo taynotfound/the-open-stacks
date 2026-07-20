@@ -30,6 +30,19 @@ app.use('/api', require('./routes/api'));
 app.use('/api/translate', require('./routes/translate'));
 app.use('/', require('./routes/feeds'));
 
+// 404
+app.use(async (req, res) => {
+  const stats = res.locals.cache?.get('stats') || {};
+  res.status(404).render('error', { status: 404, title: 'Not Found', message: "This page doesn't exist or was moved. Try searching the library.", stats });
+});
+
+// 500
+app.use(async (err, req, res, next) => {
+  console.error(err.stack);
+  const stats = res.locals.cache?.get('stats') || {};
+  res.status(500).render('error', { status: 500, title: 'Something went wrong', message: "An internal error occurred. It's been logged — try again in a moment.", stats });
+});
+
 connectDB();
 if (require.main === module) {
   app.listen(PORT, () => console.log(`The Open Stacks running on http://localhost:${PORT}`));
