@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>The Open Stacks — Free Radical Library</title>
+  <meta name="description" content="A free, open-access archive of anarchist, anti-fascist, and radical political texts. <%= stats.total ? stats.total.toLocaleString() + ' texts' : '' %> — no account, no tracking.">
+  <meta property="og:title" content="The Open Stacks">
+  <meta property="og:description" content="Host what they'd erase. A living mirror of radical, anarchist, and endangered texts.">
+  <meta property="og:image" content="/logo.svg">
+  <meta property="og:type" content="website">
+  <meta name="theme-color" content="#c8392b">
+  <link rel="icon" href="/logo.svg" type="image/svg+xml">
+  <link rel="canonical" href="https://theopenstacks.apolochees.me<%= req.path %>">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Crimson+Pro:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/style.css">
+  <link rel="alternate" type="application/rss+xml" title="The Open Stacks" href="/feed.xml">
+</head>
+<body>
+<nav class="nav">
+  <a href="/" class="nav-logo">
+    <img src="/logo.svg" alt="">
+    The Open Stacks
+    <span class="nav-logo-sub">by Kommando 161</span>
+  </a>
+  <div class="nav-search">
+    <input type="text" id="search-input" placeholder="Search texts, authors, topics…" value="<%= q %>" autocomplete="off" spellcheck="false">
+  </div>
+  <div class="nav-right">
+    <button id="themeToggle" class="theme-toggle" title="Toggle light mode">☀</button>
+    <%= stats.total ? stats.total.toLocaleString() : '—' %> texts
+  </div>
+</nav>
+<script>
+const t=localStorage.theme==='light'?'light':'dark';
+document.documentElement.dataset.theme=t;
+document.getElementById('themeToggle').textContent=t==='light'?'☾':'☀';
+document.getElementById('themeToggle').addEventListener('click',()=>{const n=document.documentElement.dataset.theme==='light'?'dark':'light';document.documentElement.dataset.theme=n;localStorage.theme=n;document.getElementById('themeToggle').textContent=n==='light'?'☾':'☀';});
+</script>
+
+<% if (!q && !category) { %>
+<div class="hero-banner">
+  <div class="hero-logo">
+    <img src="/logo.svg" alt="">
+    <h1 class="hero-title">The Open Stacks</h1>
+  </div>
+  <p class="hero-tagline">host what they'd erase</p>
+  <div class="hero-creed">
+    <p>A <strong>growing, community-run library</strong> — not just one archive. We gather radical, political, and endangered texts from many sources and <strong>keep a copy of whatever is at risk of being taken down</strong>. Every item credits where it came from; nothing is hidden or claimed as ours.</p>
+    <p class="stance">We stand for <b>free speech</b> and <b>free access</b> — and against the <b>far right</b>, <b>state control</b>, <b>capitalism</b>, and <b>censorship</b>. Read it. Share it. Fork it. <b>Organize.</b></p>
+  </div>
+  <div class="hero-symbols">☭ ⚑ Ⓐ</div>
+</div>
+<% } %>
+
+<div class="filter-bar">
+  <a href="/" class="pill<%= !category ? ' active' : '' %>">All</a>
+  <% categories.forEach(cat => { %>
+    <a href="/?category=<%= encodeURIComponent(cat) %><%= q ? '&q='+encodeURIComponent(q) : '' %>"
+       class="pill<%= category === cat ? ' active' : '' %>"><%= cat %></a>
+  <% }) %>
+</div>
+
+<% if (error) { %><div class="error-banner" style="margin:1rem 1.5rem"><%= error %></div><% } %>
+
+<main class="container">
+  <div class="results-meta">
+    <% if (q) { %>Results for "<strong><%= q %></strong>" — <%= total.toLocaleString() %> found
+    <% } else if (category) { %><strong><%= category %></strong> — <%= total.toLocaleString() %> texts
+    <% } else { %><%= total.toLocaleString() %> texts in the collection<% } %>
+  </div>
+
+  <div class="book-grid">
+    <% books.forEach(book => { %>
+    <a href="/book/<%= book.slug %>" class="book-card">
+      <div class="book-cover">
+        <% if (book.cover) { %>
+          <img src="<%= book.cover %>" alt="" loading="lazy">
+        <% } else { %>
+          <div class="cover-placeholder"><span class="cover-initial"><%= (book.title||'?')[0].toUpperCase() %></span></div>
+        <% } %>
+      </div>
+      <div class="book-info">
+        <div class="book-title-card"><%= book.title %></div>
+        <% if (book.author) { %><div class="book-author-card"><%= book.author %></div><% } %>
+        <div class="book-badges">
+          <% if (book.category) { %><span class="badge badge-cat"><%= book.category %></span><% } %>
+          <% if (book.hasBody) { %><span class="badge badge-text">Full text</span><% } %>
+        </div>
+      </div>
+    </a>
+    <% }) %>
+  </div>
+
+  <% if (pages > 1) { %>
+  <div class="pagination">
+    <% if (page > 1) { %><a href="?page=<%= page-1 %><%= q?'&q='+encodeURIComponent(q):'' %><%= category?'&category='+encodeURIComponent(category):'' %>" class="btn">← Prev</a><% } %>
+    <span class="page-info"><%= page %> / <%= pages %></span>
+    <% if (page < pages) { %><a href="?page=<%= page+1 %><%= q?'&q='+encodeURIComponent(q):'' %><%= category?'&category='+encodeURIComponent(category):'' %>" class="btn">Next →</a><% } %>
+  </div>
+  <% } %>
+</main>
+
+<%- include('_footer', { stats }) %>
+<script src="/app.js"></script>
+</body>
+</html>
