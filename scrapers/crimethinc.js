@@ -1,77 +1,60 @@
-// Crimethinc scraper — crimethinc.com articles via sitemap
-// ponytail: sitemap at /sitemap.xml -> filter /en/blog/ and /en/texts/ paths
+// CrimethInc scraper — .markdown files from sitemap (clean plaintext, no HTML parsing)
+// ponytail: sitemap.xml.gz → grep .markdown URLs → fetch each
 const https = require('https');
+const zlib = require('zlib');
 const { getDb, closeDb, slugify, upsert } = require('./lib');
 
 function get(url) {
   return new Promise((res, rej) => {
-    const u = new URL(url);
-    const req = https.get({ hostname: u.hostname, path: u.pathname + u.search, headers: { 'User-Agent': 'OpenStacks/1.0' }, timeout: 15000 }, r => {
+    https.get(url, { headers: { 'User-Agent': 'OpenStacks/1.0' }, timeout: 15000 }, r => {
       if (r.statusCode >= 300 && r.statusCode < 400 && r.headers.location)
         return get(new URL(r.headers.location, url).href).then(res).catch(rej);
-      let d = ''; r.on('data', c => d += c); r.on('end', () => res(d));
-    }).on('error', rej).on('timeout', () => { req.destroy(); rej(new Error('timeout')); });
+      const chunks = []; r.on('data', c => chunks.push(c)); r.on('end', () => res(Buffer.concat(chunks)));
+    }).on('error', rej).on('timeout', rej);
   });
 }
 
-function stripHtml(html) {
-  return html.replace(/<[^>]+>/g, ' ').replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&quot;/g,'"').replace(/&#039;/g,"'").replace(/\s+/g,' ').trim();
-}
-
-async function scrapeArticle(db, url) {
-  const slug = slugify('cwc-' + url.replace('https://crimethinc.com/','').replace(/\//g,'-').replace(/-$/,''));
-  if (await db.collection('books').findOne({ slug }, { projection: { _id: 1 } })) return false;
-
-  const html = await get(url).catch(() => null);
-  if (!html) return false;
-
-  const title = (html.match(/<h1[^>]*>([\s\S]*?)<\/h1>/i)||[])[1];
-  if (!title) return false;
-  const titleText = stripHtml(title).slice(0, 200);
-
-  // crimethinc uses <article> or .content-body
-  const articleMatch = html.match(/<article[^>]*>([\s\S]*?)<\/article>/i) || html.match(/<div[^>]*class="[^"]*body[^"]*"[^>]*>([\s\S]*?)<\/div>/i);
-  if (!articleMatch) return false;
-  const bodyText = stripHtml(articleMatch[1]).slice(0, 100000);
-  if (bodyText.length < 100) return false;
-
-  const desc = bodyText.slice(0, 300);
-  const isText = url.includes('/texts/');
-
-  await upsert(db, {
-    slug, title: titleText, author: 'CrimethInc.',
-    desc, body: bodyText, source: url,
-    sourceName: 'CrimethInc.', category: isText ? 'theory' : 'anarchist-news', language: 'en',
-    tags: ['anarchism', isText ? 'theory' : 'news'], hasBody: true, atRisk: false,
-    cover: '', files: [], images: [], links: [], state: 'active', path: '', pageType: 'external',
-  });
-  return true;
+async function getSitemapUrls() {
+  const buf = await get('https://crimethinc.com/sitemap.xml.gz');
+  const xml = zlib.gunzipSync(buf).toString();
+  return [...xml.matchAll(/<loc>(https:\/\/crimethinc\.com\/\d{4}\/[^<]+\.markdown)<\/loc>/g)].map(m => m[1]);
 }
 
 async function scrape() {
   const db = await getDb();
-
-  // Use the article sitemap
-  const sitemapIndex = await get('https://crimethinc.com/sitemap.xml').catch(() => '');
-  const sitemapUrls = [...sitemapIndex.matchAll(/<loc>([^<]+sitemap[^<]+)<\/loc>/g)].map(m=>m[1]);
-
-  let total = 0;
-  for (const sitemapUrl of sitemapUrls) {
-    if (!sitemapUrl.includes('article') && !sitemapUrl.includes('text') && !sitemapUrl.includes('blog')) continue;
-    const sm = await get(sitemapUrl).catch(() => '');
-    const urls = [...sm.matchAll(/<loc>(https:\/\/crimethinc\.com\/en\/(blog|texts)\/[^<]+)<\/loc>/g)].map(m=>m[1]);
-    console.log(`[CrimethInc] ${sitemapUrl}: ${urls.length} URLs`);
-    let inserted = 0;
-    for (const url of urls) {
-      const isNew = await scrapeArticle(db, url).catch(() => false);
-      if (isNew) inserted++;
-      await new Promise(r => setTimeout(r, 600));
-    }
-    total += inserted;
-    console.log(`[CrimethInc] +${inserted} from ${sitemapUrl}`);
-    if (inserted === 0) break; // already have everything
+  const col = db.collection('books');
+  const urls = await getSitemapUrls();
+  console.log(`[CrimethInc] ${urls.length} markdown URLs`);
+  let inserted = 0;
+  for (const mdUrl of urls) {
+    // slug from URL: 2024/01/01/some-title.markdown → cwc-2024-01-01-some-title
+    const slug = slugify('cwc-' + mdUrl.replace('https://crimethinc.com/','').replace(/\.markdown$/,'').replace(/\//g,'-'));
+    if (await col.findOne({ slug }, { projection: { _id: 1 } })) continue;
+    const raw = await get(mdUrl).then(b => b.toString()).catch(() => null);
+    if (!raw || raw.length < 100) continue;
+    // crimethinc markdown: first line is usually the title as "# Title" or YAML front matter
+    let title = '', body = raw;
+    const h1 = raw.match(/^#\s+(.+)/m);
+    const yamlTitle = raw.match(/^title:\s*(.+)/m);
+    title = (yamlTitle || h1) ? (yamlTitle||h1)[1].replace(/['"]/g,'').trim() : slug;
+    // strip YAML front matter if present
+    if (raw.startsWith('---')) body = raw.replace(/^---[\s\S]*?---\n?/, '');
+    const bodyText = body.trim().slice(0, 100000);
+    if (bodyText.length < 50) continue;
+    const isText = mdUrl.includes('-feature-') || mdUrl.includes('/texts/');
+    await upsert(db, {
+      slug, title: title.slice(0, 200), author: 'CrimethInc.',
+      desc: bodyText.slice(0, 300), body: bodyText,
+      source: mdUrl.replace('.markdown',''), sourceName: 'CrimethInc.',
+      category: isText ? 'theory' : 'anarchist-news', language: 'en',
+      tags: ['anarchism', 'crimethinc'], hasBody: true, atRisk: false,
+      cover: '', files: [], images: [], links: [], state: 'active', path: '', pageType: 'external',
+    });
+    inserted++;
+    if (inserted % 50 === 0) console.log(`[CrimethInc] +${inserted} so far…`);
+    await new Promise(r => setTimeout(r, 300));
   }
-  console.log(`[CrimethInc] TOTAL: +${total}`);
+  console.log(`[CrimethInc] TOTAL: +${inserted}`);
   await closeDb();
 }
 
