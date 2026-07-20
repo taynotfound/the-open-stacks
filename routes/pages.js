@@ -32,6 +32,13 @@ function extractToc(md) {
 }
 
 function mdToHtml(text) {
+  // strip YAML front matter
+  if (text.startsWith('---')) text = text.replace(/^---[\s\S]*?---\n?/, '');
+  // strip Kramdown block attributes {: #id .class} and footnote defs [^1]: ...
+  text = text.replace(/^\{:[^}]*\}\s*$/gm, '');
+  text = text.replace(/^\[\^[^\]]+\]:.+$/gm, '');
+  // strip inline footnote refs [^1]
+  text = text.replace(/\[\^[^\]]+\]/g, '');
   // ponytail: re-paragraph wall-of-text if no double newlines exist (scraped content)
   if (!text.includes('\n\n') && text.length > 500) {
     text = text.replace(/[ \t]{3,}([IVXLCDM]+)\. /g, '\n\n## ');
@@ -155,7 +162,16 @@ async function indexHandler(req, res) {
   // ponytail: sources list cached same as categories
   let sources = cache.get('sources');
   if (!sources && db) {
-    try { sources = (await db.collection('books').distinct('sourceName')).filter(Boolean).sort(); cache.set('sources', sources, 600); } catch { sources = []; }
+    try {
+      // ponytail: only sources with >50 items as filter pills — long tail is noise
+      const agg = await db.collection('books').aggregate([
+        { $group: { _id: '$sourceName', c: { $sum: 1 } } },
+        { $match: { _id: { $ne: null }, c: { $gt: 50 } } },
+        { $sort: { c: -1 } }
+      ]).toArray();
+      sources = agg.map(s => s._id).sort();
+      cache.set('sources', sources, 600);
+    } catch { sources = []; }
   }
   res.render('index', { books, total, page: parseInt(page), pages: Math.ceil(total / limit), stats, categories, langs, sources: sources || [], q: q || '', category: category || '', lang: lang || '', source: source || '', canonical: req.prettyCanonical || null, error });
 }
