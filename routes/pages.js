@@ -133,7 +133,7 @@ async function getCategories(db, cache) {
 
 router.get('/', async (req, res) => {
   const { db, cache } = res.locals;
-  const { q, category, lang, page = 1 } = req.query;
+  const { q, category, lang, source, page = 1 } = req.query;
   const limit = 24, skip = (parseInt(page) - 1) * limit;
   const [stats, categories, langs] = await Promise.all([getStats(db, cache), getCategories(db, cache), getLangs(db, cache)]);
   let books = [], total = 0, error = null;
@@ -143,6 +143,7 @@ router.get('/', async (req, res) => {
       if (q?.trim()) filter.$text = { $search: q.trim() };
       if (category) filter.category = category;
       if (lang) filter.language = lang;
+      if (source) filter.sourceName = source;
       const col = db.collection('books');
       [books, total] = await Promise.all([
         col.find(filter).sort({ added: -1 }).skip(skip).limit(limit).toArray(),
@@ -150,8 +151,13 @@ router.get('/', async (req, res) => {
       ]);
     } catch (e) { error = e.message; }
   } else { error = 'Database unavailable.'; }
+  // ponytail: sources list cached same as categories
+  let sources = cache.get('sources');
+  if (!sources && db) {
+    try { sources = (await db.collection('books').distinct('sourceName')).filter(Boolean).sort(); cache.set('sources', sources, 600); } catch { sources = []; }
+  }
   res.set('Cache-Control', 'no-store');
-  res.render('index', { books, total, page: parseInt(page), pages: Math.ceil(total / limit), stats, categories, langs, q: q || '', category: category || '', lang: lang || '', error });
+  res.render('index', { books, total, page: parseInt(page), pages: Math.ceil(total / limit), stats, categories, langs, sources: sources || [], q: q || '', category: category || '', lang: lang || '', source: source || '', error });
 });
 
 router.get('/random', async (req, res) => {

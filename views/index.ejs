@@ -59,7 +59,7 @@ document.getElementById('themeToggle').addEventListener('click',()=>{const n=doc
 <% } %>
 
 <div class="filter-bar">
-  <a href="/" class="pill<%= !category ? ' active' : '' %>">All</a>
+  <a href="/" class="pill<%= !category && !source ? ' active' : '' %>">All</a>
   <% categories.forEach(cat => { %>
     <a href="/?category=<%= encodeURIComponent(cat) %><%= q ? '&q='+encodeURIComponent(q) : '' %>"
        class="pill<%= category === cat ? ' active' : '' %>"><%= cat.replace(/-/g,' ') %></a>
@@ -67,9 +67,13 @@ document.getElementById('themeToggle').addEventListener('click',()=>{const n=doc
 </div>
 <div class="filter-bar filter-bar-secondary">
   <a href="/random" class="pill pill-random">⚄ Random</a>
-  <a href="/" class="pill<%= !lang ? ' active' : '' %>">All languages</a>
+  <% sources.forEach(s => { %>
+  <a href="/?source=<%= encodeURIComponent(s) %>" class="pill<%= source === s ? ' active' : '' %>"><%= s %></a>
+  <% }) %>
+  <span class="pill-sep">|</span>
+  <a href="/?<%= new URLSearchParams(Object.assign({}, q?{q}:{}, category?{category}:{}, source?{source}:{})).toString() %>" class="pill<%= !lang ? ' active' : '' %>">All languages</a>
   <% langs.forEach(l => { %>
-  <a href="/?<%= new URLSearchParams(Object.assign({}, q?{q}:{}, category?{category}:{}, {lang:l.code})).toString() %>"
+  <a href="/?<%= new URLSearchParams(Object.assign({}, q?{q}:{}, category?{category}:{}, source?{source}:{}, {lang:l.code})).toString() %>"
      class="pill<%= lang===l.code ? ' active' : '' %>"><%= l.label %></a>
   <% }) %>
 </div>
@@ -79,6 +83,7 @@ document.getElementById('themeToggle').addEventListener('click',()=>{const n=doc
 <main class="container">
   <div class="results-meta">
     <% if (q) { %>Results for "<strong><%= q %></strong>" — <%= total.toLocaleString() %> found
+    <% } else if (source) { %><strong><%= source %></strong> — <%= total.toLocaleString() %> items
     <% } else if (category) { %><strong><%= category %></strong> — <%= total.toLocaleString() %> items
     <% } else { %><%= total.toLocaleString() %> items in the collection<% } %>
   </div>
