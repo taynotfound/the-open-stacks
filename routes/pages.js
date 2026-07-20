@@ -203,6 +203,32 @@ router.get('/book/:slug', async (req, res) => {
   }
 
   let body = null, toc = [];
+  // For Internet Archive items, fetch file list live (ponytail: no cache needed, IA CDN is fast)
+  if (book.sourceName === 'Internet Archive' && book.source) {
+    const identifier = book.source.replace('https://archive.org/details/', '');
+    const ck = `ia:files:${identifier}`;
+    let iaFiles = cache.get(ck);
+    if (!iaFiles) {
+      try {
+        const http = require('https');
+        iaFiles = await new Promise((res, rej) => {
+          http.get(`https://archive.org/metadata/${identifier}`, { headers: { 'User-Agent': 'OpenStacks/1.0' } }, r => {
+            let d = ''; r.on('data', c => d += c); r.on('end', () => {
+              try { const j = JSON.parse(d); res(j); } catch { res({}); }
+            });
+          }).on('error', () => res({}));
+        });
+        cache.set(ck, iaFiles, 3600);
+      } catch { iaFiles = {}; }
+    }
+    const meta = iaFiles.metadata || {};
+    const rawFiles = (iaFiles.files || []).filter(f =>
+      /\.(mp3|ogg|aac|flac|opus|pdf|epub|txt|djvu|mp4|ogv)$/i.test(f.name)
+    ).map(f => ({ url: `https://archive.org/download/${identifier}/${f.name}`, name: f.name, format: f.format }));
+    if (rawFiles.length) book = { ...book, files: rawFiles };
+    if (meta.mediatype === 'audio' && book.category === 'theory-and-politics') book = { ...book, category: 'audio' };
+  }
+
   if (book.hasBody && book.path) {
     const ck = `body:${slug}`;
     const cached = cache.get(ck);
