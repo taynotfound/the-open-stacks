@@ -43,7 +43,7 @@
 <%- include('_nav', { showSearch: false }) %>
 <div id="read-progress"></div>
 
-<% if (book.cover) { %>
+<% if (book && book.cover) { %>
 <div class="book-cover-hero">
   <img src="<%= book.cover %>" alt="">
   <div class="hero-overlay"></div>
@@ -237,8 +237,8 @@
 <%- include('_footer', { stats }) %>
 
 <!-- Gallery lightbox -->
-<dialog id="gallery-dlg" style="background:rgba(0,0,0,.92);border:none;padding:0;max-width:100vw;max-height:100vh;width:100vw;height:100vh;display:flex;align-items:center;justify-content:center" onclick="this.close()">
-  <img id="gallery-img" style="max-width:90vw;max-height:90vh;object-fit:contain;border-radius:4px" src="" alt="">
+<dialog id="gallery-dlg" onclick="this.close()">
+  <img id="gallery-img" src="" alt="">
 </dialog>
 
 <!-- Floating TOC (populated by JS) -->

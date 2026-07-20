@@ -243,7 +243,7 @@ router.get('/book/:slug', async (req, res, next) => {
     book = await db.collection('books').findOne({ slug }).catch(() => null);
     if (book) cache.set(`book:${slug}`, book, 300);
   }
-  if (!book) return res.status(404).render('book', { book: null, body: null, toc: [], stats, error: 'Text not found.' });
+  if (!book) return res.status(404).render('book', { book: null, body: null, toc: [], stats, related: [], translations: [], cwcSiblings: [], error: 'Text not found.' });
 
   // derive cover from body if missing
   if (!book.cover && book.body) {
