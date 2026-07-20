@@ -3,15 +3,27 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>The Open Stacks — Free Radical Library</title>
-  <meta name="description" content="A free, open-access archive of anarchist, anti-fascist, and radical political texts. <%= stats.total ? stats.total.toLocaleString() + ' items' : '' %> — no account, no tracking.">
-  <meta property="og:title" content="The Open Stacks">
-  <meta property="og:description" content="Host what they'd erase. A living mirror of radical, anarchist, and endangered texts.">
-  <meta property="og:image" content="/logo.svg">
+  <%
+    const _title = q ? `"${q}" — The Open Stacks`
+      : category ? `${category.replace(/-/g,' ')} — The Open Stacks`
+      : source   ? `${source} — The Open Stacks`
+      : 'The Open Stacks — Free Radical Library';
+    const _desc = q ? `Search results for "${q}" in the Open Stacks radical library.`
+      : category ? `Browse ${category.replace(/-/g,' ')} texts — free radical library with ${stats.total ? stats.total.toLocaleString() + ' items' : 'thousands of items'}.`
+      : source   ? `All texts from ${source} — archived on The Open Stacks.`
+      : `A free, open-access archive of anarchist, anti-fascist, and radical political texts. ${stats.total ? stats.total.toLocaleString() + ' items' : ''} — no account, no tracking.`;
+    const _canonical = `https://theopenstacks.apolochees.me${req.path}${Object.keys(req.query).length ? '?'+new URLSearchParams(req.query).toString() : ''}`;
+  %>
+  <title><%= _title %></title>
+  <meta name="description" content="<%= _desc %>">
+  <meta property="og:title" content="<%= _title %>">
+  <meta property="og:description" content="<%= _desc %>">
+  <meta property="og:image" content="https://theopenstacks.apolochees.me/logo.svg">
   <meta property="og:type" content="website">
+  <meta name="robots" content="<%= (q||page>1) ? 'noindex,follow' : 'index,follow' %>">
   <meta name="theme-color" content="#c8392b">
   <link rel="icon" href="/logo.svg" type="image/svg+xml">
-  <link rel="canonical" href="https://theopenstacks.apolochees.me<%= req.path %>">
+  <link rel="canonical" href="<%= _canonical %>">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Crimson+Pro:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://kit-pro.fontawesome.com/releases/v7.0.0/css/pro.min.css">

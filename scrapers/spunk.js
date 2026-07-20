@@ -45,7 +45,7 @@ async function scrapeDir(db, url, depth = 0) {
       await upsert(db, {
         slug, title: title.slice(0, 120), author: 'Unknown',
         desc: body.slice(0, 300), source: link, sourceName: 'Spunk Library',
-        category: 'history-and-archives', language: 'en',
+        category: 'history', language: 'en',
         tags: ['anarchism', 'history', 'spunk'], hasBody: false, atRisk: true,
         cover: '', files: [], images: [], links: [], state: 'active', path: '', pageType: 'external',
       });

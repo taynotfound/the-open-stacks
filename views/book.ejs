@@ -5,14 +5,27 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <% if (book) { %>
   <title><%= book.title %> — The Open Stacks</title>
-  <meta name="description" content="<%= (book.desc || ('Read ' + book.title + (book.author ? ' by ' + book.author : '') + ' — free access on The Open Stacks.')).slice(0,160) %>">
+  <meta name="description" content="<%= (book.desc || ('Read ' + book.title + (book.author && book.author!=='Unknown' ? ' by ' + book.author : '') + ' — free access on The Open Stacks.')).slice(0,160) %>">
   <meta property="og:title" content="<%= book.title %>">
-  <meta property="og:description" content="<%= (book.desc||'').slice(0,160) %>">
-  <% if (book.cover) { %><meta property="og:image" content="<%= book.cover %>"><% } else { %><meta property="og:image" content="/logo.svg"><% } %>
-  <meta property="og:type" content="article">
-  <meta name="author" content="<%= book.author || '' %>">
+  <meta property="og:description" content="<%= (book.desc || '').slice(0, 160) %>">
+  <% if (book.cover) { %><meta property="og:image" content="<%= book.cover %>"><% } else { %><meta property="og:image" content="https://theopenstacks.apolochees.me/logo.svg"><% } %>
+  <meta property="og:type" content="book">
+  <% if (book.author && book.author !== 'Unknown') { %><meta name="author" content="<%= book.author %>"><% } %>
   <% if (book.tags && book.tags.length) { %><meta name="keywords" content="<%= book.tags.concat([book.category,'anarchism','radical','political']).filter(Boolean).join(', ') %>"><% } %>
   <link rel="canonical" href="https://theopenstacks.apolochees.me/book/<%= book.slug %>">
+  <script type="application/ld+json"><%- JSON.stringify({
+    "@context":"https://schema.org",
+    "@type": book.category==='audio' ? "AudioObject" : book.category==='video' ? "VideoObject" : "Book",
+    "name": book.title,
+    "author": book.author && book.author!=='Unknown' ? {"@type":"Person","name":book.author} : undefined,
+    "description": (book.desc||'').slice(0,500) || undefined,
+    "url": "https://theopenstacks.apolochees.me/book/"+book.slug,
+    "image": book.cover || undefined,
+    "keywords": book.tags ? book.tags.join(', ') : undefined,
+    "inLanguage": book.language || "en",
+    "isAccessibleForFree": true,
+    "publisher": {"@type":"Organization","name":"The Open Stacks","url":"https://theopenstacks.apolochees.me"}
+  }, null, 0) %></script>
   <% } else { %>
   <title>Not Found — The Open Stacks</title>
   <% } %>

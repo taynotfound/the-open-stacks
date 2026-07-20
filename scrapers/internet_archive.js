@@ -34,7 +34,7 @@ async function scrapeSubject(db, subject) {
         source: `https://archive.org/details/${d.identifier}`,
         sourceName: 'Internet Archive',
         // ponytail: mediatype from IA API, audio/video get own category
-        category: ['audio','etree'].includes(d.mediatype) ? 'audio' : d.mediatype === 'movies' ? 'video' : 'theory-and-politics',
+        category: ['audio','etree'].includes(d.mediatype) ? 'audio' : d.mediatype === 'movies' ? 'video' : 'theory',
         language: ([].concat(d.language || 'en')[0]).toLowerCase().slice(0, 2),
         tags, hasBody: false, atRisk: false, cover: '', files: [], images: [], links: [],
         state: 'active', path: '', pageType: 'external',
