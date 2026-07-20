@@ -22,7 +22,7 @@ function fetchSourceBody(url) {
   return new Promise((resolve) => {
     if (!url) return resolve(null);
     const lib = url.startsWith('https') ? https : require('http');
-    const req = lib.get(url, { headers: { 'User-Agent': 'TheOpenStacks/1.0 (educational archive)', Accept: 'text/html' }, timeout: 12000 }, res => {
+    const req = lib.get(url, { headers: { 'User-Agent': 'TheOpenStacks/1.0 (educational archive)', Accept: 'text/html' }, timeout: 5000 }, res => {
       if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location)
         return fetchSourceBody(res.headers.location).then(resolve);
       if (res.statusCode !== 200) return resolve(null);
@@ -356,16 +356,14 @@ router.get('/book/:slug', async (req, res, next) => {
           if (result.etag) cache.set(`body:${slug}:etag`, result.etag, 7200);
         }
       }
-      // fallback: live-fetch from original source URL
-      if (!body && book.source) {
+      // fallback: live-fetch only on non-serverless (has persistent cache)
+      // Vercel resets memory per request, so outbound fetch would block every load
+      if (!body && book.source && process.env.VERCEL !== '1') {
         const sourceText = await fetchSourceBody(book.source).catch(() => null);
         if (sourceText) {
           toc = extractToc(sourceText);
           body = mdToHtml(sourceText);
           cache.set(ck, { html: body, toc }, 1800);
-        } else if (!body) {
-          // couldn't get text — flag as gallery if images exist
-          cache.set(ck, { html: null, toc: [] }, 600);
         }
       }
     }
