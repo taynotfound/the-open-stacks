@@ -179,9 +179,10 @@
       <% } %>
       <% } %>
 
-      <% if (body && !allSiblings.length && book.language && book.language !== 'en' && book.language !== 'eng') { %>
+      <% if (body) { %>
       <div class="body-divider"></div>
 
+      <% if (!allSiblings.length && book.language && book.language !== 'en' && book.language !== 'eng') { %>
       <div style="margin-bottom:1rem;display:flex;align-items:center;gap:0;">
         <button class="tx-btn" id="txBtn" data-lang="<%= book.language || 'auto' %>">⟳ Translate</button>
         <select class="tx-select" id="txSrc">
@@ -191,6 +192,7 @@
         </select>
       </div>
       <div class="tx-status" id="txStatus"></div>
+      <% } %>
 
       <div class="book-with-toc">
         <% if (toc && toc.length > 1) { %>
