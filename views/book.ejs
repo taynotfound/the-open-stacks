@@ -26,6 +26,9 @@
     "isAccessibleForFree": true,
     "publisher": {"@type":"Organization","name":"The Open Stacks","url":"https://theopenstacks.apolochees.me"}
   }, null, 0) %></script>
+  <link rel="alternate" hreflang="<%= book.language || 'en' %>" href="https://theopenstacks.apolochees.me/book/<%= book.slug %>">
+  <link rel="alternate" hreflang="x-default" href="https://theopenstacks.apolochees.me/book/<%= book.slug %>">
+  <% if (translations && translations.length) { translations.forEach(t => { %><link rel="alternate" hreflang="<%= t.language || 'en' %>" href="https://theopenstacks.apolochees.me/book/<%= t.slug %>"><% }) } %>
   <% } else { %>
   <title>Not Found — The Open Stacks</title>
   <% } %>
