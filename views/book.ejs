@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <% if (book) { %>
+  <title><%= book.title %> — The Open Stacks</title>
+  <meta name="description" content="<%= (book.desc || ('Read ' + book.title + (book.author ? ' by ' + book.author : '') + ' — free access on The Open Stacks.')).slice(0,160) %>">
+  <meta property="og:title" content="<%= book.title %>">
+  <meta property="og:description" content="<%= (book.desc||'').slice(0,160) %>">
+  <% if (book.cover) { %><meta property="og:image" content="<%= book.cover %>"><% } else { %><meta property="og:image" content="/logo.svg"><% } %>
+  <meta property="og:type" content="article">
+  <meta name="author" content="<%= book.author || '' %>">
+  <% if (book.tags && book.tags.length) { %><meta name="keywords" content="<%= book.tags.concat([book.category,'anarchism','radical','political']).filter(Boolean).join(', ') %>"><% } %>
+  <link rel="canonical" href="https://theopenstacks.apolochees.me/book/<%= book.slug %>">
+  <% } else { %>
+  <title>Not Found — The Open Stacks</title>
+  <% } %>
+  <meta name="theme-color" content="#c8392b">
+  <link rel="icon" href="/logo.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Crimson+Pro:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<nav class="nav">
+  <a href="/" class="nav-logo">
+    <img src="/logo.svg" alt="The Open Stacks">
+    The Open Stacks
+    <span class="nav-logo-sub">by Kommando 161</span>
+  </a>
+  <div class="nav-right">
+    <button id="themeToggle" class="theme-toggle" title="Toggle light mode">☀</button>
+    <%= stats.total ? stats.total.toLocaleString() : '—' %> texts
+  </div>
+</nav>
+
+<main class="book-page">
+  <div class="book-page-inner">
+    <a href="/" class="back-link">← Library</a>
+
+    <% if (error && !book) { %>
+      <div class="error-banner"><%= error %></div>
+    <% } else if (book) { %>
+
+    <article>
+      <header class="book-header">
+        <% if (book.category) { %><span class="category-label"><%= book.category %></span><% } %>
+        <h1 class="book-title"><%= book.title %></h1>
+        <% if (book.author) { %><div class="book-author">by <%= book.author %></div><% } %>
+        <div class="book-meta-row">
+          <% if (book.sourceName) { %><span class="meta-pill"><%= book.sourceName %></span><% } %>
+          <% if (book.language && book.language !== 'en') { %><span class="meta-pill"><%= book.language %></span><% } %>
+          <% if (book.added) { %><span class="meta-date"><%= new Date(book.added * 1000).getFullYear() %></span><% } %>
+          <% if (book.hasBody) { %><span class="meta-pill pill-text">Full text</span><% } %>
+          <% if (book.translatedFrom && book.translatedFrom.trim()) { %><span class="meta-pill pill-trans">Translated from <%= book.translatedFrom %><% if (book.translatedType) { %> · <%= book.translatedType %><% } %></span><% } %>
+        </div>
+      </header>
+
+      <% if (book.translatedFrom && book.translatedFrom.trim() && book.originalSlug) { %>
+      <div class="tx-origin-bar">
+        <span>Translated to English from <strong><%= book.translatedFrom %></strong><% if (book.translatedType) { %> via <strong><%= book.translatedType %></strong><% } %></span>
+        <a href="/book/<%= book.originalSlug %>" class="tx-origin-link">← View original</a>
+      </div>
+      <% } %>
+
+      <% if (book.translations && book.translations.length > 0) { %>
+      <div class="lang-switcher">
+        <span>Also in:</span>
+        <span class="lang-pill current">English (original)</span>
+        <% book.translations.forEach(t => { %>
+          <a href="/book/<%= t.slug %>" class="lang-pill translated"><%= t.language %> <span class="lang-engine"><%= t.translatedType || 'translated' %></span></a>
+        <% }) %>
+      </div>
+      <% } %>
+
+      <% if (book.desc) { %><div class="book-desc"><%= book.desc %></div><% } %>
+      <% if (book.tags && book.tags.length > 0) { %>
+      <div class="book-tags">
+        <% book.tags.forEach(t => { %><span class="tag"><%= t %></span><% }) %>
+      </div>
+      <% } %>
+
+      <% if (book.files && book.files.length > 0) { %>
+      <div class="book-downloads">
+        <span class="section-label">Download</span>
+        <div class="download-row">
+          <% book.files.forEach(f => { const url = typeof f==='string'?f:(f.url||f); const ext=(url.split('?')[0].split('.').pop()||'FILE').toUpperCase(); %>
+            <a href="<%= url %>" target="_blank" rel="noopener" class="btn-download"><%= ext %></a>
+          <% }) %>
+        </div>
+      </div>
+      <% } %>
+
+      <% if (body) { %>
+      <div class="body-divider"></div>
+
+      <% if (book.language && book.language !== 'en') { %>
+      <div style="margin-bottom:1rem;display:flex;align-items:center;gap:0;">
+        <button class="tx-btn" id="txBtn" data-lang="<%= book.language %>">⟳ Translate to English</button>
+        <select class="tx-select" id="txSrc">
+          <option value="mymemory">MyMemory (free)</option>
+          <option value="google">Google Translate</option>
+        </select>
+      </div>
+      <div class="tx-status" id="txStatus"></div>
+      <% } %>
+
+      <div class="book-with-toc">
+        <% if (toc && toc.length > 1) { %>
+        <aside class="toc" id="toc">
+          <div class="toc-title">Contents</div>
+          <ol>
+            <% toc.forEach((h, i) => { %><li><a href="#section-<%= i %>"><%= h %></a></li><% }) %>
+          </ol>
+        </aside>
+        <% } %>
+
+        <div class="book-content-col">
+          <% if (book.cover) { %>
+          <div class="book-cover-hero">
+            <img src="<%= book.cover %>" alt="Cover of <%= book.title %>" loading="lazy">
+          </div>
+          <% } %>
+          <div id="tx-content">
+            <div class="body-text" id="bodyText"><%- body %></div>
+          </div>
+        </div>
+      </div>
+
+      <% } else if (book.hasBody) { %>
+        <div class="body-loading">Loading full text…</div>
+      <% } %>
+    </article>
+    <% } %>
+  </div>
+</main>
+
+<%- include('_footer', { stats }) %>
+
+<script>
+// Theme toggle
+const toggle = document.getElementById('themeToggle');
+if (toggle) {
+  const apply = t => { document.documentElement.dataset.theme = t; localStorage.theme = t; toggle.textContent = t === 'light' ? '☾' : '☀'; };
+  apply(localStorage.theme === 'light' ? 'light' : 'dark');
+  toggle.addEventListener('click', () => apply(document.documentElement.dataset.theme === 'light' ? 'dark' : 'light'));
+}
+
+// Sticky TOC
+const toc = document.getElementById('toc');
+if (toc) {
+  const observer = new IntersectionObserver(([e]) => toc.classList.toggle('toc-sticky', !e.isIntersecting), { threshold: 0, rootMargin: '-60px 0px 0px 0px' });
+  observer.observe(toc);
+}
+
+<% if (body && book.language && book.language !== 'en') { %>
+const BOOK_LANG = '<%= book.language %>';
+const TX_CACHE_KEY = 'os_tx_<%= book.slug %>';
+const txBtn = document.getElementById('txBtn');
+const txSrc = document.getElementById('txSrc');
+const txStatus = document.getElementById('txStatus');
+const bodyText = document.getElementById('bodyText');
+let originalHTML = bodyText.innerHTML, translated = false;
+
+txBtn.addEventListener('click', async () => {
+  if (translated) {
+    bodyText.innerHTML = originalHTML;
+    txBtn.textContent = '⟳ Translate to English';
+    txStatus.textContent = '';
+    translated = false;
+    return;
+  }
+  const engine = txSrc.value;
+  const cached = localStorage.getItem(TX_CACHE_KEY + '_' + engine);
+  if (cached) { bodyText.innerHTML = cached; txBtn.textContent = '✕ Original'; txStatus.textContent = 'from cache'; translated = true; return; }
+
+  txBtn.disabled = true; txBtn.textContent = 'Translating…';
+  const text = bodyText.innerText;
+  const paras = text.split(/\n{2,}/);
+  const chunks = []; let cur = '';
+  for (const p of paras) { if (cur.length + p.length > 3500 && cur) { chunks.push(cur.trim()); cur = ''; } cur += (cur?'\n\n':'')+p; }
+  if (cur.trim()) chunks.push(cur.trim());
+
+  const parts = [];
+  for (let i=0; i<chunks.length; i++) {
+    txStatus.textContent = `Chunk ${i+1}/${chunks.length}…`;
+    try {
+      const url = engine==='google' ? '/api/translate' : '/api/translate/mymemory';
+      const body = engine==='google' ? {q:chunks[i],source:BOOK_LANG,target:'en'} : {text:chunks[i],sourceLang:BOOK_LANG};
+      const r = await fetch(url, {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+      const d = await r.json();
+      parts.push(d.translated || `[error: ${d.error}]`);
+    } catch(e) { parts.push(`[error: ${e.message}]`); }
+  }
+
+  const html = parts.join('\n\n').split('\n\n').map(p=>`<p>${p.replace(/\n/g,'<br>')}</p>`).join('\n');
+  localStorage.setItem(TX_CACHE_KEY+'_'+engine, html);
+  bodyText.innerHTML = html;
+  txBtn.disabled = false; txBtn.textContent = '✕ Original';
+  txStatus.textContent = `via ${engine==='google'?'Google':'MyMemory'}`;
+  translated = true;
+});
+<% } %>
+</script>
+</body>
+</html>
