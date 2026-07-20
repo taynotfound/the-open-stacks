@@ -124,7 +124,7 @@ function mdToHtml(text) {
     .join('\n');
 }
 
-const LANG_NAMES = {en:'English',de:'Deutsch',fr:'Français',es:'Español',ru:'Русский',zh:'中文',ar:'العربية',pt:'Português',it:'Italiano',nl:'Nederlands',pl:'Polski',sv:'Svenska',tr:'Türkçe',ja:'日本語',fa:'فارسی'};
+const LANG_NAMES = {eng:'English',deu:'Deutsch',fra:'Français',spa:'Español',rus:'Русский',cmn:'中文',ara:'العربية',por:'Português',ita:'Italiano',nld:'Nederlands',pol:'Polski',swe:'Svenska',tur:'Türkçe',jpn:'日本語',fas:'فارسی',ell:'Ελληνικά',bul:'Български',ces:'Čeština',ind:'Bahasa Indonesia',ukr:'Українська',kat:'ქართული',hye:'Հայերեն'};
 async function getLangs(db, cache) {
   const hit = cache.get('langs');
   if (hit) return hit;

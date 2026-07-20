@@ -79,13 +79,17 @@
       </div>
       <% } %>
 
-      <% const allSiblings = [...(cwcSiblings||[]), ...(translations||[])]; %>
+      <% 
+        const ISO3={eng:'en',fra:'fr',spa:'es',deu:'de',ita:'it',por:'pt',rus:'ru',pol:'pl',ell:'el',bul:'bg',cmn:'zh',jpn:'ja',nld:'nl',ces:'cs',ind:'id',tur:'tr',ukr:'uk',swe:'sv',nor:'no',fin:'fi',kat:'ka',hye:'hy'};
+        const langCode=l=>ISO3[l]||l;
+        const allSiblings = [...(cwcSiblings||[]), ...(translations||[])];
+      %>
       <% if (allSiblings.length > 0) { %>
       <div class="lang-switcher">
         <span>Also in:</span>
-        <span class="lang-pill current"><%= book.language || 'en' %></span>
+        <span class="lang-pill current"><%= langCode(book.language||'en') %></span>
         <% allSiblings.forEach(t => { %>
-          <a href="/book/<%= t.slug %>" class="lang-pill translated"><%= t.language || '?' %></a>
+          <a href="/book/<%= t.slug %>" class="lang-pill translated"><%= langCode(t.language||'?') %></a>
         <% }) %>
       </div>
       <% } %>
