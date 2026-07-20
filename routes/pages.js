@@ -155,7 +155,19 @@ async function indexHandler(req, res) {
       if (source) filter.sourceName = source;
       const col = db.collection('books');
       [books, total] = await Promise.all([
-        col.find(filter).sort({ added: -1 }).skip(skip).limit(limit).toArray(),
+        col.find(filter).sort({ added: -1 }).skip(skip).limit(limit)
+          .project({ slug:1, title:1, author:1, cover:1, category:1, sourceName:1, hasBody:1, body:1, desc:1 })
+          .toArray().then(bs => bs.map(b => {
+            // ponytail: extract first image from body as cover if none stored
+            if (!b.cover && b.body) {
+              const m = b.body.match(/\[\[(https?:\/\/[^\]\s]+)|\!\[[^\]]*\]\((https?:\/\/[^)]+)\)/);
+              if (m) b.cover = m[1] || m[2];
+            }
+            // derive read time from body word count, store on object for template
+            b._readMin = b.body ? Math.ceil(b.body.split(/\s+/).length / 220) : 0;
+            delete b.body; // don't send full body to template
+            return b;
+          })),
         col.countDocuments(filter)
       ]);
     } catch (e) { error = e.message; }
