@@ -86,12 +86,12 @@
       <% } %>
 
       <% if (book.files && book.files.length > 0) { %>
-      <% const audioFile = book.files.find(f => { const u=typeof f==='string'?f:(f.url||f); return /\.(mp3|ogg|aac|flac|opus)$/i.test(u.split('?')[0]); }); %>
-      <% if (audioFile) { const audioUrl = typeof audioFile==='string'?audioFile:(audioFile.url||audioFile); %>
+      <% const audioFile = book.files.find(f => { const u=typeof f==='string'?f:(f.url||f); return /\.mp3$/i.test(u.split('?')[0]); }) || book.files.find(f => { const u=typeof f==='string'?f:(f.url||f); return /\.(ogg|aac|flac|opus)$/i.test(u.split('?')[0]); }); %>
+      <% if (audioFile) { const audioUrl = typeof audioFile==='string'?audioFile:(audioFile.url||audioFile); const audioExt=(audioUrl.split('.').pop()||'').toLowerCase(); const audioMime={mp3:'audio/mpeg',ogg:'audio/ogg',aac:'audio/aac',flac:'audio/flac',opus:'audio/ogg'}[audioExt]||'audio/mpeg'; %>
       <div class="book-player">
         <span class="section-label">Listen</span>
         <audio controls preload="none" style="width:100%;margin-top:.5rem">
-          <source src="<%= audioUrl %>" type="audio/mpeg">
+          <source src="<%= audioUrl %>" type="<%= audioMime %>">
         </audio>
       </div>
       <% } %>
