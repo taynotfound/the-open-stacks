@@ -34,4 +34,8 @@ app.use('/api', require('./routes/api'));
 app.use('/api/translate', require('./routes/translate'));
 app.use('/', require('./routes/feeds'));
 
-connectDB().then(() => app.listen(PORT, () => console.log(`The Open Stacks running on http://localhost:${PORT}`)));
+connectDB();
+if (require.main === module) {
+  app.listen(PORT, () => console.log(`The Open Stacks running on http://localhost:${PORT}`));
+}
+module.exports = app;

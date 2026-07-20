@@ -1,8 +1,5 @@
 {
-  "trailingSlash": false,
-  "rewrites": [
-    { "source": "/book/:slug", "destination": "/api/meta" },
-    { "source": "/gallery/:slug", "destination": "/api/meta" },
-    { "source": "/((?!api/|.*\\.[a-zA-Z0-9]+$).*)", "destination": "/index.html" }
-  ]
+  "version": 2,
+  "builds": [{ "src": "api/index.js", "use": "@vercel/node" }],
+  "routes": [{ "src": "/(.*)", "dest": "/api/index.js" }]
 }
