@@ -116,4 +116,38 @@ router.get('/stats', async (req, res) => {
   res.json(stats);
 });
 
+// ── TRANSLATE ──────────────────────────────────────────────────────────────
+// ponytail: three engines, one route each. No abstraction — they're different APIs.
+
+// MyMemory (free, no key)
+router.post('/translate/mymemory', async (req, res) => {
+  const { text, sourceLang } = req.body;
+  if (!text) return res.json({ error: 'no text' });
+  const lang = (sourceLang && sourceLang !== 'auto') ? `${sourceLang}|en` : 'autodetect|en';
+  const url = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text.slice(0,500))}&langpair=${encodeURIComponent(lang)}`;
+  try {
+    const r = await fetch(url);
+    const d = await r.json();
+    res.json({ translated: d.responseData?.translatedText || d.responseDetails || 'error' });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// DeepL (free tier key in .env)
+router.post('/translate/deepl', async (req, res) => {
+  const { text, sourceLang } = req.body;
+  if (!text) return res.json({ error: 'no text' });
+  if (!process.env.DEEPL_TOKEN) return res.status(503).json({ error: 'DeepL not configured' });
+  try {
+    const r = await fetch('https://api-free.deepl.com/v2/translate', {
+      method: 'POST',
+      headers: { 'Authorization': `DeepL-Auth-Key ${process.env.DEEPL_TOKEN}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text: [text], target_lang: 'EN', ...(sourceLang && sourceLang !== 'auto' ? { source_lang: sourceLang.toUpperCase() } : {}) })
+    });
+    const d = await r.json();
+    if (d.message) return res.status(400).json({ error: d.message });
+    res.json({ translated: d.translations?.[0]?.text || 'error' });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
 module.exports = router;
+

@@ -42,10 +42,15 @@ function mdToHtml(text) {
   // CrimethInc [[url]] or [[url class:X caption text]] → figure with optional caption
   text = text.replace(/\[\[(https?:\/\/[^\]\s]+)(?:\s+class:[^\s\]]+)?(?:\s+([^\]]+))?\]\]/g, (_, url, caption) =>
     caption ? `\n\n![${caption.trim()}](${url})\n\n*${caption.trim()}*\n\n` : `![](${url})`);
+  // promote single newlines to double — do this first so \n\n check below is accurate
+  if (text.includes('\n') && !text.includes('\n\n')) {
+    text = text.replace(/\n/g, '\n\n');
+  }
   // ponytail: re-paragraph wall-of-text if no double newlines exist (scraped content)
   if (!text.includes('\n\n') && text.length > 500) {
     text = text.replace(/[ \t]{3,}([IVXLCDM]+)\. /g, '\n\n## ');
-    text = text.replace(/\. ([A-ZÁÉÍÓÚÄÖÜÀÂÇÈÊÎÏÔÙÛŒÆÑА-Я])/g, '.\n\n$1');
+    // split on sentence end + capital (incl. accented/unicode) — covers FR/DE/ES
+    text = text.replace(/([.!?])\s+([A-ZÁÉÍÓÚÄÖÜÀÂÇÈÊÎÏÔÙÛŒÆÑ«"])/g, '$1\n\n$2');
   }
   let i = 0;
   const lines = text.split('\n');

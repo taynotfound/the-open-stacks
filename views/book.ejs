@@ -173,8 +173,9 @@
       <div style="margin-bottom:1rem;display:flex;align-items:center;gap:0;">
         <button class="tx-btn" id="txBtn" data-lang="<%= book.language || 'auto' %>">⟳ Translate</button>
         <select class="tx-select" id="txSrc">
+          <option value="deepl">DeepL (best)</option>
           <option value="mymemory">MyMemory (free)</option>
-          <option value="google">Google Translate</option>
+          <option value="google">Google Translate ⚠</option>
         </select>
       </div>
       <div class="tx-status" id="txStatus"></div>
@@ -250,6 +251,10 @@ txBtn.addEventListener('click', async () => {
     return;
   }
   const engine = txSrc.value;
+  if (engine === 'google') {
+    if (!confirm('Send text to Google Translate? Google may log and use this data.')) return;
+    if (!confirm('Are you sure? Your text will be sent to Google\'s servers.')) return;
+  }
   const cached = localStorage.getItem(TX_CACHE_KEY + '_' + engine);
   if (cached) {
     bodyText.innerHTML = cached;
@@ -269,8 +274,8 @@ txBtn.addEventListener('click', async () => {
   for (let i=0; i<chunks.length; i++) {
     txStatus.textContent = `Chunk ${i+1}/${chunks.length}…`;
     try {
-      const url = engine==='google' ? '/api/translate' : '/api/translate/mymemory';
-      const body = engine==='google' ? {q:chunks[i],source:BOOK_LANG,target:'en'} : {text:chunks[i],sourceLang:BOOK_LANG};
+      const url = `/api/translate/${engine}`;
+      const body = { text: chunks[i], sourceLang: BOOK_LANG };
       const r = await fetch(url, {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
       const d = await r.json();
       parts.push(d.translated || `[error: ${d.error}]`);
