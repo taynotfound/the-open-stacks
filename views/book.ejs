@@ -179,7 +179,7 @@
       <% } %>
       <% } %>
 
-      <% if (body) { %>
+      <% if (body && !allSiblings.length) { %>
       <div class="body-divider"></div>
 
       <div style="margin-bottom:1rem;display:flex;align-items:center;gap:0;">
@@ -236,6 +236,11 @@
 
 <%- include('_footer', { stats }) %>
 
+<!-- Gallery lightbox -->
+<dialog id="gallery-dlg" style="background:rgba(0,0,0,.92);border:none;padding:0;max-width:100vw;max-height:100vh;width:100vw;height:100vh;display:flex;align-items:center;justify-content:center" onclick="this.close()">
+  <img id="gallery-img" style="max-width:90vw;max-height:90vh;object-fit:contain;border-radius:4px" src="" alt="">
+</dialog>
+
 <!-- Floating TOC (populated by JS) -->
 <nav class="book-toc" id="bookToc"></nav>
 
@@ -263,6 +268,13 @@
 <script>
 const BOOK_SLUG = '<%= book.slug %>';
 const BOOK_TITLE = '<%= (book.title||'').replace(/'/g, "\\'") %>';
+
+// ── Gallery ──
+const dlg = document.getElementById('gallery-dlg');
+const gImg = document.getElementById('gallery-img');
+document.querySelectorAll('.gallery-link').forEach(a => {
+  a.addEventListener('click', e => { e.preventDefault(); gImg.src=a.href; dlg.showModal(); });
+});
 
 // ── Reading progress ──
 const prog = document.getElementById('read-progress');

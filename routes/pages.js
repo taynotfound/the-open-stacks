@@ -107,7 +107,7 @@ function mdToHtml(text) {
     .replace(/^---$/gm, '<hr>')
     .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
     .replace(/\*(.+?)\*/g, '<em>$1</em>')
-    .replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<img src="$2" alt="$1" class="body-img" loading="lazy">')
+    .replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<a href="$2" class="gallery-link"><img src="$2" alt="$1" class="body-img" loading="lazy"></a>')
     .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>')
     .split(/\n{2,}/)
     .map(p => {
