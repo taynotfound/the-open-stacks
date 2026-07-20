@@ -17,6 +17,55 @@ function fetchRaw(url, conditionalEtag) {
   });
 }
 
+// Live-fetch body from original source URL, extract main text block
+function fetchSourceBody(url) {
+  return new Promise((resolve) => {
+    if (!url) return resolve(null);
+    const lib = url.startsWith('https') ? https : require('http');
+    const req = lib.get(url, { headers: { 'User-Agent': 'TheOpenStacks/1.0 (educational archive)', Accept: 'text/html' }, timeout: 12000 }, res => {
+      if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location)
+        return fetchSourceBody(res.headers.location).then(resolve);
+      if (res.statusCode !== 200) return resolve(null);
+      let d = ''; res.on('data', c => { d += c; if (d.length > 2e6) req.destroy(); });
+      res.on('end', () => {
+        // strip scripts/styles
+        d = d.replace(/<script[\s\S]*?<\/script>/gi,'').replace(/<style[\s\S]*?<\/style>/gi,'');
+        // source-specific selectors
+        const selectors = /anarchistlibrar/i.test(url)
+          ? ['id="main-text"', 'class="muse-format-content"']
+          : /libcom\.org/i.test(url)
+          ? ['class="field-items"', 'class="node__content"']
+          : /crimethinc\.com/i.test(url)
+          ? ['class="content-container"', 'class="entry-content"']
+          : ['class="entry-content"', 'class="post-content"', 'class="content"'];
+        selectors.push('<article', '<main');
+        let text = null;
+        for (const sel of selectors) {
+          const idx = d.indexOf(sel);
+          if (idx === -1) continue;
+          const start = d.indexOf('>', idx) + 1;
+          const tag = d.slice(d.lastIndexOf('<', idx) + 1, idx).trim().split(/\s/)[0];
+          // find closing tag (simplified — works for most cases)
+          const closeTag = `</${tag}>`;
+          let block = d.slice(start, start + 300000);
+          const closeIdx = block.lastIndexOf(closeTag);
+          if (closeIdx > 100) block = block.slice(0, closeIdx);
+          text = block
+            .replace(/<br\s*\/?>/gi,'\n').replace(/<\/p>/gi,'\n\n').replace(/<\/h[1-6]>/gi,'\n\n')
+            .replace(/<\/li>/gi,'\n').replace(/<[^>]+>/g,'')
+            .replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&nbsp;/g,' ').replace(/&#39;/g,"'").replace(/&quot;/g,'"')
+            .replace(/\n{3,}/g,'\n\n').trim();
+          if (text.length > 200) break;
+          text = null;
+        }
+        resolve(text && text.length > 200 ? text : null);
+      });
+    });
+    req.on('error', () => resolve(null));
+    req.on('timeout', () => { req.destroy(); resolve(null); });
+  });
+}
+
 function stripFrontmatter(md) {
   const m = md.match(/^---[\s\S]*?---\n?([\s\S]*)/);
   return m ? m[1].trim() : md.trim();
@@ -290,10 +339,24 @@ router.get('/book/:slug', async (req, res, next) => {
       if (result?.notModified && cached) { body = cached.html; toc = cached.toc; }
       else if (result?.body) {
         const content = stripFrontmatter(result.body);
-        toc = extractToc(content);
-        body = mdToHtml(content);
-        cache.set(ck, { html: body, toc }, 3600);
-        if (result.etag) cache.set(`body:${slug}:etag`, result.etag, 7200);
+        if (content.length > 200) {
+          toc = extractToc(content);
+          body = mdToHtml(content);
+          cache.set(ck, { html: body, toc }, 3600);
+          if (result.etag) cache.set(`body:${slug}:etag`, result.etag, 7200);
+        }
+      }
+      // fallback: live-fetch from original source URL
+      if (!body && book.source) {
+        const sourceText = await fetchSourceBody(book.source).catch(() => null);
+        if (sourceText) {
+          toc = extractToc(sourceText);
+          body = mdToHtml(sourceText);
+          cache.set(ck, { html: body, toc }, 1800);
+        } else if (!body) {
+          // couldn't get text — flag as gallery if images exist
+          cache.set(ck, { html: null, toc: [] }, 600);
+        }
       }
     }
   }
