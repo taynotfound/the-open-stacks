@@ -193,12 +193,31 @@ async function loadTree(){
   const cacheKey = "libcom_index_"+sha;
   const cached = localStorage.getItem(cacheKey);
   if(cached){ return {books: JSON.parse(cached), sha, cached:true}; }
-  // ONE request: prebuilt index.json (metadata only, no bodies). Bodies are lazy-loaded per book.
   el("sub").textContent = "loading index…";
-  const out = await fetch(`${RAW}/index.json`).then(r=>{
-    if(!r.ok) throw new Error("index.json "+r.status);
-    return r.json();
-  });
+
+  // Try chunked index first
+  let out;
+  const metaResp = await fetch(`${RAW}/index-meta.json`);
+  if(metaResp.ok){
+    const meta = await metaResp.json();
+    const total = meta.chunks;
+    let loaded = 0;
+    const chunkPromises = Array.from({length: total}, (_, i) =>
+      fetch(`${RAW}/index-${i}.json`).then(r=>{
+        if(!r.ok) throw new Error(`index-${i}.json ${r.status}`);
+        return r.json().then(data=>{ loaded++; el("sub").textContent = `Loading… ${loaded}/${total} chunks`; return data; });
+      })
+    );
+    const chunks = await Promise.all(chunkPromises);
+    out = chunks.flat();
+  } else {
+    // Fallback to single index.json
+    out = await fetch(`${RAW}/index.json`).then(r=>{
+      if(!r.ok) throw new Error("index.json "+r.status);
+      return r.json();
+    });
+  }
+
   Object.keys(localStorage).filter(k=>k.startsWith("libcom_books_")||k.startsWith("libcom_index_")).forEach(k=>localStorage.removeItem(k));
   try{ localStorage.setItem(cacheKey, JSON.stringify(out)); }catch(e){}
   return {books: out, sha, cached:false};
