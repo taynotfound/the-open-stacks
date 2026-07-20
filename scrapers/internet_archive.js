@@ -4,7 +4,7 @@ const https = require('https');
 const { getDb, closeDb, slugify, upsert } = require('./lib');
 
 const SUBJECTS = ['anarchism', 'anarchist', 'antifascism', 'syndicalism', 'libertarian socialism'];
-const PAGE = 100;
+const PAGE = 500;
 
 function get(url) {
   return new Promise((res, rej) => {
@@ -17,9 +17,9 @@ function get(url) {
 async function scrapeSubject(db, subject) {
   let page = 1, inserted = 0, updated = 0;
   while (true) {
-    const url = `https://archive.org/advancedsearch.php?q=subject:(${encodeURIComponent(subject)})&fl=identifier,title,creator,description,subject,language,date&rows=${PAGE}&page=${page}&output=json`;
-    const raw = await get(url);
-    const data = JSON.parse(raw);
+    const url = `https://archive.org/advancedsearch.php?q=subject:(${encodeURIComponent(subject)})&fl=identifier,title,creator,description,subject,language,date,mediatype&rows=${PAGE}&page=${page}&output=json`;
+    let raw, data;
+    try { raw = await get(url); data = JSON.parse(raw); } catch (e) { console.error(`[IA] page ${page} parse error: ${e.message}, skipping`); page++; continue; }
     const docs = data?.response?.docs || [];
     if (!docs.length) break;
 
@@ -33,8 +33,9 @@ async function scrapeSubject(db, subject) {
         desc: (d.description || '').slice(0, 500),
         source: `https://archive.org/details/${d.identifier}`,
         sourceName: 'Internet Archive',
-        category: 'theory-and-politics',
-        language: (d.language || 'en').toLowerCase().slice(0, 2),
+        // ponytail: mediatype from IA API, audio/video get own category
+        category: ['audio','etree'].includes(d.mediatype) ? 'audio' : d.mediatype === 'movies' ? 'video' : 'theory-and-politics',
+        language: ([].concat(d.language || 'en')[0]).toLowerCase().slice(0, 2),
         tags, hasBody: false, atRisk: false, cover: '', files: [], images: [], links: [],
         state: 'active', path: '', pageType: 'external',
       };
