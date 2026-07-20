@@ -173,6 +173,7 @@ async function indexHandler(req, res) {
       if (category) filter.category = category;
       if (lang) filter.language = lang;
       if (source) filter.sourceName = source;
+      filter.isCanonical = { $ne: false }; // hide non-canonical translations (cwc multi-lang)
       const col = db.collection('books');
       [books, total] = await Promise.all([
         col.find(filter).sort({ added: -1 }).skip(skip).limit(limit)
@@ -253,9 +254,15 @@ router.get('/book/:slug', async (req, res, next) => {
   // Find translations of this book (books where originalSlug === slug)
   let translations = [];
   if (db) {
-    try {
-      translations = await db.collection('books').find({ originalSlug: slug }).project({ slug: 1, language: 1, translatedType: 1 }).toArray();
-    } catch {}
+    translations = await db.collection('books').find({ originalSlug: slug }).project({ slug: 1, language: 1, translatedType: 1 }).toArray().catch(() => []);
+  }
+
+  // CrimethInc multi-lang siblings (same cwcGroup, different slug)
+  let cwcSiblings = [];
+  if (db && book.cwcGroup) {
+    cwcSiblings = await db.collection('books')
+      .find({ cwcGroup: book.cwcGroup, slug: { $ne: slug } })
+      .project({ slug: 1, language: 1 }).toArray().catch(() => []);
   }
   book.translations = translations;
 
@@ -291,7 +298,7 @@ router.get('/book/:slug', async (req, res, next) => {
     }
   }
 
-  res.render('book', { book, body, toc, stats, related, translations, error: null });
+  res.render('book', { book, body, toc, stats, related, translations, cwcSiblings, error: null });
   } catch (e) { next(e); }
 });
 

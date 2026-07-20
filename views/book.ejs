@@ -79,12 +79,13 @@
       </div>
       <% } %>
 
-      <% if (book.translations && book.translations.length > 0) { %>
+      <% const allSiblings = [...(cwcSiblings||[]), ...(translations||[])]; %>
+      <% if (allSiblings.length > 0) { %>
       <div class="lang-switcher">
         <span>Also in:</span>
-        <span class="lang-pill current">English (original)</span>
-        <% book.translations.forEach(t => { %>
-          <a href="/book/<%= t.slug %>" class="lang-pill translated"><%= t.language %> <span class="lang-engine"><%= t.translatedType || 'translated' %></span></a>
+        <span class="lang-pill current"><%= book.language || 'en' %></span>
+        <% allSiblings.forEach(t => { %>
+          <a href="/book/<%= t.slug %>" class="lang-pill translated"><%= t.language || '?' %></a>
         <% }) %>
       </div>
       <% } %>
@@ -169,6 +170,7 @@
             <a href="<%= url %>" target="_blank" rel="noopener" class="btn-download" title="<%= name %>"><%= ext %></a>
           <% }) %>
         </div>
+        <p style="font-size:0.72rem;color:var(--muted);margin-top:0.5rem">⚠ PDFs may load slowly on mobile. Consider reading the full text above.</p>
       </div>
       <% } %>
       <% } %>
