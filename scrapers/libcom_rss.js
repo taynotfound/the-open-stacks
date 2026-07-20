@@ -46,7 +46,6 @@ async function scrape() {
       sourceName: 'libcom.org', category: 'anarchism', language: 'en',
       tags: ['anarchism', 'libcom'], hasBody: true, atRisk: false,
       cover: '', files: [], images: [], links: [], state: 'active', path: '', pageType: 'external',
-      added: pubDate ? Math.floor(new Date(pubDate).getTime() / 1000) : undefined,
     });
     inserted++;
   }
