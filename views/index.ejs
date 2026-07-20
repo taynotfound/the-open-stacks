@@ -47,7 +47,6 @@
   </div>
   <div class="nav-right">
     <button id="themeToggle" class="theme-toggle" title="Toggle light mode">☀</button>
-    <%= stats.total ? stats.total.toLocaleString() : '—' %> items
   </div>
 </nav>
 <script>
@@ -68,7 +67,10 @@ document.getElementById('themeToggle').addEventListener('click',()=>{const n=doc
       </div>
     </div>
     <div class="hero-stats">
-      <div class="hstat"><span class="hstat-n"><%= stats.total ? stats.total.toLocaleString() : '—' %></span><span class="hstat-l">texts</span></div>
+      <div class="hstat">
+        <span class="hstat-n" id="liveTotal"><%= stats.total ? stats.total.toLocaleString() : '—' %></span>
+        <span class="hstat-l">texts <span id="liveArrow" class="live-arrow"></span></span>
+      </div>
       <div class="hstat-sep"></div>
       <div class="hstat"><span class="hstat-n"><%= stats.sources || '—' %></span><span class="hstat-l">sources</span></div>
       <div class="hstat-sep"></div>
@@ -85,15 +87,42 @@ document.getElementById('themeToggle').addEventListener('click',()=>{const n=doc
       <a href="https://anarchistnews.org" target="_blank" rel="noopener" class="newswire-src">anarchistnews.org ↗</a>
       <a href="https://de.indymedia.org/newswire" target="_blank" rel="noopener" class="newswire-src">de.indymedia.org ↗</a>
     </div>
-    <div class="newswire-feed" id="newswireFeed"><span class="newswire-loading">Loading…</span></div>
+    <div class="newswire-cards" id="newswireFeed"><span class="newswire-loading">Loading…</span></div>
+    <div class="newswire-dots" id="newswireDots"></div>
   </div>
 </section>
 <script>
-fetch('/api/news').then(r=>r.json()).then(items=>{
+(function(){
+  const PAGE=3;
+  let items=[], cur=0, timer=null;
   const el=document.getElementById('newswireFeed');
-  if(!items.length){el.innerHTML='<span class="newswire-empty">—</span>';return;}
-  el.innerHTML=items.map((it,i)=>`<a href="${it.url}" target="_blank" rel="noopener" class="nw-item${i===0?' nw-lead':''}">${it.lang&&it.lang!=='en'?`<span class="nw-lang">${it.lang}</span> `:''}${it.title}</a>`).join('');
-}).catch(()=>{});
+  const dots=document.getElementById('newswireDots');
+
+  function srcColor(src){ return src==='anarchistnews.org' ? '#c8392b' : '#4a7c59'; }
+
+  function render(){
+    const slice=items.slice(cur, cur+PAGE);
+    el.innerHTML=slice.map(it=>`
+      <a href="${it.url}" target="_blank" rel="noopener" class="nw-card">
+        <div class="nw-card-src" style="background:${srcColor(it.src)}">${it.src}</div>
+        <div class="nw-card-title">${it.lang&&it.lang!=='en'?`<span class="nw-lang">${it.lang}</span> `:''}${it.title}</div>
+      </a>`).join('');
+    // dots
+    const pages=Math.ceil(items.length/PAGE);
+    dots.innerHTML=Array.from({length:pages},(_,i)=>
+      `<button class="nw-dot${i===Math.floor(cur/PAGE)?' active':''}" onclick="nwGo(${i*PAGE})"></button>`).join('');
+  }
+
+  window.nwGo=function(idx){ cur=idx; render(); resetTimer(); };
+
+  function next(){ cur=(cur+PAGE)%items.length; if(cur+PAGE>items.length) cur=0; render(); }
+  function resetTimer(){ clearInterval(timer); timer=setInterval(next,5000); }
+
+  fetch('/api/news').then(r=>r.json()).then(d=>{
+    if(!d.length){el.innerHTML='<span class="newswire-empty">—</span>';return;}
+    items=d; render(); resetTimer();
+  }).catch(()=>{el.innerHTML='';});
+})();
 </script>
 <% } %>
 
@@ -114,8 +143,12 @@ fetch('/api/news').then(r=>r.json()).then(items=>{
   <% sources.forEach(s => { %>
   <a href="/source/<%= encodeURIComponent(s) %>" class="pill<%= source === s ? ' active' : '' %>"><%= s %></a>
   <% }) %>
-  <span class="pill-sep">|</span>
-  <a href="/?<%= new URLSearchParams(Object.assign({}, q?{q}:{}, category?{category}:{}, source?{source}:{})).toString() %>" class="pill<%= !lang ? ' active' : '' %>">All languages</a>
+</div>
+</div>
+<div class="filter-bar-wrap filter-bar-langs">
+<div class="filter-bar filter-bar-secondary">
+  <span class="pill-sep" style="font-size:0.7rem;opacity:.5;flex-shrink:0">🌐</span>
+  <a href="/?<%= new URLSearchParams(Object.assign({}, q?{q}:{}, category?{category}:{}, source?{source}:{})).toString() %>" class="pill<%= !lang ? ' active' : '' %>">All</a>
   <% langs.forEach(l => { %>
   <a href="/?<%= new URLSearchParams(Object.assign({}, q?{q}:{}, category?{category}:{}, source?{source}:{}, {lang:l.code})).toString() %>"
      class="pill<%= lang===l.code ? ' active' : '' %>"><%= l.label %></a>
@@ -170,6 +203,30 @@ fetch('/api/news').then(r=>r.json()).then(items=>{
 
 <%- include('_footer', { stats }) %>
 <script src="/app.js"></script>
+<script>
+// live count + growth arrow
+(function(){
+  const el=document.getElementById('liveTotal');
+  const arrow=document.getElementById('liveArrow');
+  if(!el) return;
+  const SK='tos_baseline_total';
+  let baseline=parseInt(localStorage.getItem(SK)||'0');
+  function update(){
+    fetch('/api/stats').then(r=>r.json()).then(d=>{
+      const n=d.total||0;
+      if(el) el.textContent=n.toLocaleString();
+      if(!baseline){ baseline=n; localStorage.setItem(SK,n); }
+      if(arrow && n>baseline){
+        const pct=Math.round((n-baseline)/baseline*100);
+        arrow.textContent=pct>0?` ↑${pct}%`:'';
+        arrow.className='live-arrow up';
+      }
+    }).catch(()=>{});
+  }
+  update();
+  setInterval(update, 15000);
+})();
+</script>
 <script>
 document.querySelectorAll('.filter-bar-wrap').forEach(wrap => {
   const bar = wrap.querySelector('.filter-bar');
