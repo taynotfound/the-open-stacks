@@ -134,7 +134,7 @@ async function getCategories(db, cache) {
 // Pretty URLs for SEO — set query params + prettyCanonical, then fall through to index handler
 async function indexHandler(req, res) {
   const { db, cache } = res.locals;
-  const { q, category, lang, source, type, page = 1 } = req.query;
+  const { q, category, lang, source, page = 1 } = req.query;
   const limit = 24, skip = (parseInt(page) - 1) * limit;
   const [stats, categories, langs] = await Promise.all([getStats(db, cache), getCategories(db, cache), getLangs(db, cache)]);
   let books = [], total = 0, error = null;
@@ -145,9 +145,6 @@ async function indexHandler(req, res) {
       if (category) filter.category = category;
       if (lang) filter.language = lang;
       if (source) filter.sourceName = source;
-      if (type === 'audio') filter.category = 'audio';
-      else if (type === 'video') filter.category = 'video';
-      else if (type === 'text') filter.category = { $nin: ['audio', 'video'] };
       const col = db.collection('books');
       [books, total] = await Promise.all([
         col.find(filter).sort({ added: -1 }).skip(skip).limit(limit).toArray(),
@@ -164,9 +161,8 @@ async function indexHandler(req, res) {
 }
 
 router.get('/', indexHandler);
-router.get('/category/:slug', (req, res) => { req.query.category = req.params.slug; req.prettyCanonical = `https://theopenstacks.apolochees.me/category/${req.params.slug}`; return indexHandler(req, res); });
-router.get('/source/:slug',   (req, res) => { req.query.source   = req.params.slug; req.prettyCanonical = `https://theopenstacks.apolochees.me/source/${req.params.slug}`;   return indexHandler(req, res); });
-router.get('/type/:slug',     (req, res) => { req.query.type     = req.params.slug; req.prettyCanonical = `https://theopenstacks.apolochees.me/type/${req.params.slug}`;     return indexHandler(req, res); });
+router.get('/category/:slug', async (req, res, next) => { req.query.category = req.params.slug; req.prettyCanonical = `https://theopenstacks.apolochees.me/category/${req.params.slug}`; return indexHandler(req, res, next); });
+router.get('/source/:slug', async (req, res, next) => { req.query.source = decodeURIComponent(req.params.slug); req.prettyCanonical = `https://theopenstacks.apolochees.me/source/${req.params.slug}`; return indexHandler(req, res, next); });
 
 router.get('/random', async (req, res) => {
   const { db } = res.locals;

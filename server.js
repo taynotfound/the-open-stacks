@@ -10,13 +10,19 @@ const PORT = process.env.PORT || 4200;
 const MONGODB_URI = process.env.MONGODB_URI;
 const cache = new NodeCache({ stdTTL: 300 });
 // ponytail: single persistent client, driver handles pool + reconnects
-const client = new MongoClient(MONGODB_URI, { serverSelectionTimeoutMS: 5000 });
+const client = new MongoClient(MONGODB_URI, {
+  serverSelectionTimeoutMS: 5000,
+  socketTimeoutMS: 45000,
+  maxIdleTimeMS: 270000, // ponytail: close idle connections before Atlas's 30min idle timeout kills them
+});
 const db = client.db('open-stacks');
 
 async function connectDB() {
   await client.connect();
   db.collection('books').createIndex({ title: 'text', author: 'text', desc: 'text', tags: 'text', body: 'text' }).catch(() => {});
   console.log('Connected to MongoDB');
+  // ponytail: ping every 4min to keep Atlas connection alive
+  setInterval(() => db.command({ ping: 1 }).catch(() => {}), 4 * 60 * 1000);
 }
 
 app.set('view engine', 'ejs');
