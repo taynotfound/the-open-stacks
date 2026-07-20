@@ -218,51 +218,6 @@ router.get('/book/:slug', async (req, res, next) => {
   }
 
   let body = null, toc = [];
-  // For Internet Archive items, fetch file list live (ponytail: no cache needed, IA CDN is fast)
-  if (book.sourceName === 'Internet Archive' && book.source) {
-    const identifier = book.source.replace('https://archive.org/details/', '');
-    const ck = `ia:files:${identifier}`;
-    let iaFiles = cache.get(ck);
-    if (!iaFiles) {
-      try {
-        const http = require('https');
-        iaFiles = await new Promise((res, rej) => {
-          const req = http.get(`https://archive.org/metadata/${identifier}`, { headers: { 'User-Agent': 'OpenStacks/1.0' } }, r => {
-            let d = ''; r.on('data', c => d += c); r.on('end', () => {
-              try { res(JSON.parse(d)); } catch { res({}); }
-            });
-          }).on('error', () => res({}));
-          setTimeout(() => { req.destroy(); res({}); }, 4000); // ponytail: 4s hard timeout
-        });
-        cache.set(ck, iaFiles, Object.keys(iaFiles).length ? 3600 : 300); // ponytail: cache failures for 5min to avoid repeat hits on dead items
-      } catch { iaFiles = {}; }
-    }
-    const meta = iaFiles.metadata || {};
-    const JUNK = /(_files\.xml|_meta\.|_spectrogram\.|_speech_|\.afpk|\.asr\.|__ia_thumb|\.sqlite|\.torrent|\.xml|\.json|\.png|\.jpg|\.jpeg|\.gif|\.sha1|\.md5)$/i;
-    const rawFiles = (iaFiles.files || [])
-      .filter(f => !f.private && !JUNK.test(f.name) && /\.(mp3|ogg|aac|flac|opus|mp4|ogv|webm|pdf|epub|txt|djvu)$/i.test(f.name))
-      .map(f => ({ url: `https://archive.org/download/${identifier}/${encodeURIComponent(f.name)}`, name: f.name, format: f.format }));
-    if (rawFiles.length) book = { ...book, files: rawFiles };
-    if (meta.mediatype === 'audio' && book.category === 'theory-and-politics') book = { ...book, category: 'audio' };
-
-    // ponytail: TXT body — serve from cache immediately; kick off background fetch if cold
-    const txtFile = rawFiles.find(f => /\.txt$/i.test(f.name) && !/files\.xml|meta\.xml/i.test(f.name));
-    if (txtFile && !body) {
-      const bck = `ia:body:${identifier}`;
-      const cached = cache.get(bck);
-      if (cached) {
-        body = cached;
-      } else {
-        // fire-and-forget: user gets page now, body appears on next load
-        fetchRaw(txtFile.url).then(result => {
-          if (result?.body) {
-            const content = result.body.slice(0, 200000);
-            cache.set(bck, mdToHtml(content), 7200);
-          }
-        }).catch(() => {});
-      }
-    }
-  }
 
   if (book.hasBody && book.path) {
     const ck = `body:${slug}`;
