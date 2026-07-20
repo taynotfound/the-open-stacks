@@ -54,25 +54,44 @@ router.get('/suggest', async (req, res) => {
 
 router.get('/news', async (req, res) => {
   const { cache } = res.locals;
-  const ck = 'indymedia:news';
+  const ck = 'newswire:v2';
   const hit = cache.get(ck);
   if (hit) return res.json(hit);
   try {
-    const html = await new Promise((ok, fail) => {
-      const mod = require('https');
-      mod.get('https://de.indymedia.org/newswire', { headers: { 'User-Agent': 'OpenStacks/1.0' } }, r => {
-        let d = ''; r.on('data', c => d += c); r.on('end', () => ok(d));
-      }).on('error', fail);
-    });
-    const items = [];
-    const re = /href="(\/node\/(\d+))"[^>]*>([^<]{10,})/g;
-    let m;
-    while ((m = re.exec(html)) !== null && items.length < 12) {
-      const title = m[3].trim();
-      if (/Unterstützen|Mailinglisten|Impressum|About/i.test(title)) continue;
-      items.push({ url: 'https://de.indymedia.org' + m[1], title });
+    function fetchText(url) {
+      return new Promise((ok, fail) => {
+        const mod = require('https');
+        const req = mod.get(url, { headers: { 'User-Agent': 'OpenStacks/1.0' }, timeout: 8000 }, r => {
+          let d = ''; r.on('data', c => d += c); r.on('end', () => ok(d));
+        }).on('error', fail).on('timeout', () => { req.destroy(); fail(new Error('timeout')); });
+      });
     }
-    cache.set(ck, items, 900); // ponytail: 15min TTL, good enough for a newswire
+    // fetch both feeds in parallel
+    const [deHtml, anRss] = await Promise.allSettled([
+      fetchText('https://de.indymedia.org/newswire'),
+      fetchText('https://anarchistnews.org/rss.xml'),
+    ]);
+    const items = [];
+    // de.indymedia.org — scrape HTML links
+    if (deHtml.status === 'fulfilled') {
+      const re = /href="(\/node\/(\d+))"[^>]*>([^<]{10,})/g; let m;
+      while ((m = re.exec(deHtml.value)) !== null && items.filter(i=>i.lang==='de').length < 8) {
+        const title = m[3].trim();
+        if (/Unterstützen|Mailinglisten|Impressum|About/i.test(title)) continue;
+        items.push({ url: 'https://de.indymedia.org' + m[1], title, lang: 'de', src: 'de.indymedia.org' });
+      }
+    }
+    // anarchistnews.org — RSS
+    if (anRss.status === 'fulfilled') {
+      const posts = [...anRss.value.matchAll(/<item>([\s\S]*?)<\/item>/g)].slice(0, 8);
+      for (const p of posts) {
+        const link = (p[1].match(/<link>([^<]+)<\/link>/) || p[1].match(/<guid[^>]*>([^<]+)<\/guid>/) || [])[1]?.trim();
+        const rawTitle = (p[1].match(/<title>([\s\S]*?)<\/title>/) || [])[1] || '';
+        const title = rawTitle.replace(/<!\[CDATA\[/g,'').replace(/\]\]>/g,'').replace(/<[^>]+>/g,'').trim();
+        if (link && title) items.push({ url: link, title, lang: 'en', src: 'anarchistnews.org' });
+      }
+    }
+    cache.set(ck, items, 900);
     res.json(items);
   } catch(e) { res.json([]); }
 });

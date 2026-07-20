@@ -76,7 +76,7 @@ document.getElementById('themeToggle').addEventListener('click',()=>{const n=doc
 <div class="filter-bar">
   <a href="/" class="pill<%= !category && !source ? ' active' : '' %>">All</a>
   <span class="pill-sep">·</span>
-  <% categories.forEach(cat => { %>
+  <% categories.filter(c=>c!=='anarchism').forEach(cat => { %>
     <a href="/category/<%= encodeURIComponent(cat) %>"
        class="pill<%= category === cat ? ' active' : '' %>"><%= cat.replace(/-/g,' ') %></a>
   <% }) %>
@@ -114,12 +114,15 @@ document.getElementById('themeToggle').addEventListener('click',()=>{const n=doc
         <% if (book.cover) { %>
           <img src="<%= book.cover %>" alt="" loading="lazy">
         <% } else { %>
-          <div class="cover-placeholder"><span class="cover-initial"><%= (book.title||'?')[0].toUpperCase() %></span></div>
+          <% const _ci = (book.title||'?').split('').reduce((a,c)=>a+c.charCodeAt(0),0) % 8; %>
+          <div class="cover-placeholder cp-<%= _ci %>"><span class="cover-initial"><%= (book.title||'?')[0].toUpperCase() %></span></div>
         <% } %>
       </div>
       <div class="book-info">
         <div class="book-title-card"><%= book.title %></div>
         <% if (book.author && book.author !== 'Unknown') { %><div class="book-author-card"><%= book.author %></div><% } %>
+        <% const _wc = book.body ? Math.ceil(book.body.split(/\s+/).length / 220) : 0; %>
+        <% if (_wc > 1) { %><div class="book-readtime"><%= _wc %> min read</div><% } %>
         <div class="book-badges">
           <% if (book.category && book.category !== category) { %><span class="badge badge-cat"><%= book.category.replace(/-/g,' ') %></span><% } %>
           <% if (book.hasBody) { %><span class="badge badge-text">full text</span><% } %>
@@ -132,9 +135,10 @@ document.getElementById('themeToggle').addEventListener('click',()=>{const n=doc
 
   <% if (pages > 1) { %>
   <div class="pagination">
-    <% if (page > 1) { %><a href="?page=<%= page-1 %><%= q?'&q='+encodeURIComponent(q):'' %><%= category?'&category='+encodeURIComponent(category):'' %>" class="btn">← Prev</a><% } %>
+    <% const _qs = (p) => '?page='+p+(q?'&q='+encodeURIComponent(q):'')+(category?'&category='+encodeURIComponent(category):'')+(source?'&source='+encodeURIComponent(source):'')+(lang?'&lang='+encodeURIComponent(lang):''); %>
+    <% if (page > 1) { %><a href="<%= _qs(page-1) %>" class="btn">← Prev</a><% } %>
     <span class="page-info"><%= page %> / <%= pages %></span>
-    <% if (page < pages) { %><a href="?page=<%= page+1 %><%= q?'&q='+encodeURIComponent(q):'' %><%= category?'&category='+encodeURIComponent(category):'' %>" class="btn">Next →</a><% } %>
+    <% if (page < pages) { %><a href="<%= _qs(page+1) %>" class="btn">Next →</a><% } %>
   </div>
   <% } %>
 </main>
@@ -143,6 +147,7 @@ document.getElementById('themeToggle').addEventListener('click',()=>{const n=doc
   <div class="newswire-inner container">
     <div class="newswire-hd">
       <span class="newswire-label">Newswire</span>
+      <a href="https://anarchistnews.org" target="_blank" rel="noopener" class="newswire-src">anarchistnews.org ↗</a>
       <a href="https://de.indymedia.org/newswire" target="_blank" rel="noopener" class="newswire-src">de.indymedia.org ↗</a>
     </div>
     <div class="newswire-feed" id="newswireFeed"><span class="newswire-loading">Loading…</span></div>
@@ -152,7 +157,7 @@ document.getElementById('themeToggle').addEventListener('click',()=>{const n=doc
 fetch('/api/news').then(r=>r.json()).then(items=>{
   const el=document.getElementById('newswireFeed');
   if(!items.length){el.innerHTML='<span class="newswire-empty">—</span>';return;}
-  el.innerHTML=items.map((it,i)=>`<a href="${it.url}" target="_blank" rel="noopener" class="nw-item${i===0?' nw-lead':''}">${it.title}</a>`).join('');
+  el.innerHTML=items.map((it,i)=>`<a href="${it.url}" target="_blank" rel="noopener" class="nw-item${i===0?' nw-lead':''}">${it.lang&&it.lang!=='en'?`<span class="nw-lang">${it.lang}</span> `:''}${it.title}</a>`).join('');
 }).catch(()=>{});
 </script>
 
