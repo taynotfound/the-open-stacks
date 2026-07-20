@@ -78,6 +78,8 @@ function extractToc(md) {
 }
 
 function mdToHtml(text) {
+  // normalize Windows line endings
+  text = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
   // strip YAML front matter
   if (text.startsWith('---')) text = text.replace(/^---[\s\S]*?---\n?/, '');
   // strip Twitter/X embed URLs (CORP-blocked, useless without embed JS)
