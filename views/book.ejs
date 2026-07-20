@@ -391,6 +391,7 @@ const txBtn = document.getElementById('txBtn');
 const txSrc = document.getElementById('txSrc');
 const txStatus = document.getElementById('txStatus');
 const bodyText = document.getElementById('bodyText');
+if (bodyText) {
 let originalHTML = bodyText.innerHTML, translated = false;
 
 txBtn.addEventListener('click', async () => {
@@ -459,6 +460,7 @@ txBtn.addEventListener('click', async () => {
     } catch(e) { btn.textContent = `✕ ${e.message}`; btn.disabled = false; }
   });
 });
+} // end if (bodyText)
 <% } %>
 </script>
 </body>
