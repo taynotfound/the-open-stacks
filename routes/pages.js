@@ -37,8 +37,8 @@ function mdToHtml(text) {
   // strip Kramdown block attributes {: #id .class} and footnote defs [^1]: ...
   text = text.replace(/^\{:[^}]*\}\s*$/gm, '');
   text = text.replace(/^\[\^[^\]]+\]:.+$/gm, '');
-  // strip inline footnote refs [^1]
-  text = text.replace(/\[\^[^\]]+\]/g, '');
+  // CrimethInc wiki-style images: [[url]] or [[url class:portrait]]
+  text = text.replace(/\[\[(https?:\/\/[^\]\s]+)(?:\s+[^\]]*)?\]\]/g, '![]($1)');
   // ponytail: re-paragraph wall-of-text if no double newlines exist (scraped content)
   if (!text.includes('\n\n') && text.length > 500) {
     text = text.replace(/[ \t]{3,}([IVXLCDM]+)\. /g, '\n\n## ');
@@ -78,7 +78,7 @@ function mdToHtml(text) {
   return joined
     .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
     // restore our already-generated HTML tags
-    .replace(/&lt;(\/?(blockquote|table|tbody|tr|td|h[2-4]|sup|p|br|strong|em|a|hr)[^&]*)&gt;/g, '<$1>')
+    .replace(/&lt;(\/?(blockquote|table|tbody|tr|td|h[2-4]|sup|p|br|strong|em|a|img|hr)[^&]*)&gt;/g, '<$1>')
     .replace(/&lt;(a href=)&quot;([^&]+)&quot;/g, '<a href="$2"')
     .replace(/^#{4}\s+(.+)$/gm, (_, t) => `<h4>${t}</h4>`)
     .replace(/^#{3}\s+(.+)$/gm, (_, t) => `<h3 id="section-${i++}">${t}</h3>`)
@@ -87,6 +87,7 @@ function mdToHtml(text) {
     .replace(/^---$/gm, '<hr>')
     .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
     .replace(/\*(.+?)\*/g, '<em>$1</em>')
+    .replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<img src="$2" alt="$1" class="body-img" loading="lazy">')
     .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>')
     .split(/\n{2,}/)
     .map(p => {

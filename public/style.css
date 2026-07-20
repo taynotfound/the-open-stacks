@@ -262,6 +262,7 @@ code { font-family: 'Fira Code', 'Courier New', monospace; font-size: 0.85em; ba
 }
 [data-theme="dark"] .body-text { color: #e8e4df; }
 .body-text p { margin-bottom: 1.15em; }
+.body-img { max-width: 100%; height: auto; border-radius: 4px; margin: 1rem 0; display: block; }
 .body-text h2 { font-family: var(--sans); font-size: 1.15rem; font-weight: 600; color: var(--text); margin: 2.2em 0 0.7em; padding-top: 1rem; border-top: 1px solid var(--border); }
 .body-text h3 { font-family: var(--sans); font-size: 1rem; font-weight: 600; color: var(--text); margin: 1.8em 0 0.5em; }
 .body-text h4 { font-family: var(--sans); font-size: 0.9rem; font-weight: 600; color: var(--muted); margin: 1.5em 0 0.4em; text-transform: uppercase; letter-spacing: 0.06em; }
