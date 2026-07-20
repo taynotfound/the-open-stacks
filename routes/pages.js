@@ -363,15 +363,6 @@ router.post('/api/contribute', async (req, res) => {
       body: `**Author:** ${author||'Unknown'}\n**Category:** ${category}\n**Language:** ${language||'en'}\n\n${desc||''}`,
       head: branch, base: 'main'
     });
-    // also land it in DB immediately so it's searchable without waiting for a scraper run
-    if (db) {
-      const { upsert } = require('../scrapers/lib');
-      await upsert(db, {
-        slug, title, author: author||'Unknown', category, desc: desc||'', language: language||'eng',
-        tags: tagsArr, source: source||'', body: textContent||'', state: textContent?.trim() ? 'full' : 'linked',
-        added: added, pr: pr.html_url
-      });
-    }
     res.json({ pr: pr.html_url });
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
