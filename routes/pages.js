@@ -80,6 +80,17 @@ function extractToc(md) {
 function mdToHtml(text) {
   // normalize Windows line endings
   text = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+  // fast path for large plain-text bodies (OCR etc) — skip heavy regex pipeline
+  if (text.length > 80000 && !text.includes('[[') && !text.startsWith('---')) {
+    return text.split(/\n\n+/).map(p => {
+      p = p.trim(); if (!p) return '';
+      if (/^#{1,4}\s/.test(p)) {
+        const lvl = p.match(/^(#{1,4})/)[1].length;
+        return `<h${lvl} class="body-h">${p.replace(/^#{1,4}\s+/,'')}</h${lvl}>`;
+      }
+      return `<p>${p.replace(/\n/g,'<br>').replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>').replace(/\*(.+?)\*/g,'<em>$1</em>')}</p>`;
+    }).filter(Boolean).join('\n');
+  }
   // strip YAML front matter
   if (text.startsWith('---')) text = text.replace(/^---[\s\S]*?---\n?/, '');
   // strip Twitter/X embed URLs (CORP-blocked, useless without embed JS)
