@@ -416,8 +416,7 @@ footer {
 .toc a:hover { color: var(--accent); }
 
 /* ── COVER HERO ── */
-.book-cover-hero { margin-bottom: 2rem; }
-.book-cover-hero img { max-width: 220px; border-radius: var(--radius); border: 1px solid var(--border); box-shadow: 0 8px 32px -8px rgba(0,0,0,0.5); display: block; }
+
 
 @media (max-width: 860px) {
   .book-with-toc { flex-direction: column; }
@@ -431,7 +430,7 @@ footer {
   .nav-search { display: none; }
   .book-title { font-size: 1.75rem; }
   .hero-title { font-size: 1.5rem; }
-  .book-cover-hero img { max-width: 160px; }
+  .book-toc { display: none; }
 }
 
 
