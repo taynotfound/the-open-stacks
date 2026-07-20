@@ -202,8 +202,8 @@ async function extractPDF(file) {
   }
 
   const arrayBuf = await file.arrayBuffer();
-  // store raw PDF bytes for server upload
-  window._pdfBytes = arrayBuf;
+  // pdf.js transfers/detaches the ArrayBuffer — keep a copy for upload
+  window._pdfBytes = arrayBuf.slice(0);
 
   const pdf = await pdfjsLib.getDocument({ data: arrayBuf }).promise;
   const pages = [];

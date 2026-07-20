@@ -397,6 +397,9 @@ txBtn.addEventListener('click', async () => {
   }
 
   txBtn.disabled = true; txBtn.textContent = 'Translating…';
+  const txAbort = new AbortController();
+  const onUnload = () => txAbort.abort();
+  window.addEventListener('beforeunload', onUnload);
   const text = bodyText.innerText;
   const paras = text.split(/\n{2,}/);
   const chunks = []; let cur = '';
@@ -409,7 +412,7 @@ txBtn.addEventListener('click', async () => {
     try {
       const url = `/api/translate/${engine}`;
       const body = { text: chunks[i], sourceLang: BOOK_LANG };
-      const r = await fetch(url, {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+      const r = await fetch(url, {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body),signal:txAbort.signal});
       const d = await r.json();
       parts.push(d.translated || `[error: ${d.error}]`);
     } catch(e) { parts.push(`[error: ${e.message}]`); }
@@ -418,6 +421,7 @@ txBtn.addEventListener('click', async () => {
   const html = parts.join('\n\n').split('\n\n').map(p=>`<p>${p.replace(/\n/g,'<br>')}</p>`).join('\n');
   localStorage.setItem(TX_CACHE_KEY+'_'+engine, html);
   bodyText.innerHTML = html;
+  window.removeEventListener('beforeunload', onUnload);
   txBtn.disabled = false; txBtn.textContent = '✕ Original';
   txStatus.innerHTML = `via ${engine==='google'?'Google':'MyMemory'} — <button id="contribTx" class="tx-contribute-btn">contribute this translation →</button>`;
   translated = true;
