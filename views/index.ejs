@@ -12,7 +12,7 @@
       : category ? `Browse ${category.replace(/-/g,' ')} texts — free radical library with ${stats.total ? stats.total.toLocaleString() + ' items' : 'thousands of items'}.`
       : source   ? `All texts from ${source} — archived on The Open Stacks.`
       : `A free, open-access archive of anarchist, anti-fascist, and radical political texts. ${stats.total ? stats.total.toLocaleString() + ' items' : ''} — no account, no tracking.`;
-    const _canonical = `https://theopenstacks.apolochees.me${req.path}${Object.keys(req.query).length ? '?'+new URLSearchParams(req.query).toString() : ''}`;
+    const _canonical = canonical || `https://theopenstacks.apolochees.me${req.path}${Object.keys(req.query).length ? '?'+new URLSearchParams(req.query).toString() : ''}`;
   %>
   <title><%= _title %></title>
   <meta name="description" content="<%= _desc %>">
@@ -74,12 +74,12 @@ document.getElementById('themeToggle').addEventListener('click',()=>{const n=doc
 <div class="filter-bar">
   <a href="/" class="pill<%= !category && !source && !req.query.type ? ' active' : '' %>">All</a>
   <span class="pill-sep">📄</span>
-  <a href="/?type=text" class="pill<%= req.query.type==='text' ? ' active' : '' %>">Text</a>
-  <a href="/?type=audio" class="pill<%= req.query.type==='audio' ? ' active' : '' %>">Audio</a>
-  <a href="/?type=video" class="pill<%= req.query.type==='video' ? ' active' : '' %>">Video</a>
+  <a href="/type/text" class="pill<%= req.query.type==='text' ? ' active' : '' %>">Text</a>
+  <a href="/type/audio" class="pill<%= req.query.type==='audio' ? ' active' : '' %>">Audio</a>
+  <a href="/type/video" class="pill<%= req.query.type==='video' ? ' active' : '' %>">Video</a>
   <span class="pill-sep">·</span>
   <% categories.forEach(cat => { %>
-    <a href="/?category=<%= encodeURIComponent(cat) %><%= q ? '&q='+encodeURIComponent(q) : '' %>"
+    <a href="/category/<%= encodeURIComponent(cat) %>"
        class="pill<%= category === cat ? ' active' : '' %>"><%= cat.replace(/-/g,' ') %></a>
   <% }) %>
 </div>
@@ -88,7 +88,7 @@ document.getElementById('themeToggle').addEventListener('click',()=>{const n=doc
 <div class="filter-bar filter-bar-secondary">
   <a href="/random" class="pill pill-random">⚄ Random</a>
   <% sources.forEach(s => { %>
-  <a href="/?source=<%= encodeURIComponent(s) %>" class="pill<%= source === s ? ' active' : '' %>"><%= s %></a>
+  <a href="/source/<%= encodeURIComponent(s) %>" class="pill<%= source === s ? ' active' : '' %>"><%= s %></a>
   <% }) %>
   <span class="pill-sep">|</span>
   <a href="/?<%= new URLSearchParams(Object.assign({}, q?{q}:{}, category?{category}:{}, source?{source}:{})).toString() %>" class="pill<%= !lang ? ' active' : '' %>">All languages</a>

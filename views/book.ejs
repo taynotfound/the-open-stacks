@@ -59,11 +59,11 @@
 
     <article>
       <header class="book-header">
-        <% if (book.category) { %><a href="/?category=<%= book.category %>" class="category-label"><%= book.category %></a><% } %>
+        <% if (book.category) { %><a href="/category/<%= book.category %>" class="category-label"><%= book.category %></a><% } %>
         <h1 class="book-title"><%= book.title %></h1>
         <% if (book.author && book.author !== 'Unknown') { %><div class="book-author">by <%= book.author %></div><% } %>
         <div class="book-meta-row">
-          <% if (book.sourceName) { %><a href="/?source=<%= encodeURIComponent(book.sourceName) %>" class="meta-pill"><%= book.sourceName %></a><% } %>
+          <% if (book.sourceName) { %><a href="/source/<%= encodeURIComponent(book.sourceName) %>" class="meta-pill"><%= book.sourceName %></a><% } %>
           <% if (book.language && book.language !== 'en') { %><span class="meta-pill"><%= book.language %></span><% } %>
           <% if (book.added) { %><span class="meta-date"><%= new Date(book.added * 1000).getFullYear() %></span><% } %>
           <% if (book.hasBody) { %><span class="meta-pill pill-text">Full text</span><% } %>

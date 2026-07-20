@@ -131,7 +131,8 @@ async function getCategories(db, cache) {
   } catch { return []; }
 }
 
-router.get('/', async (req, res) => {
+// Pretty URLs for SEO — set query params + prettyCanonical, then fall through to index handler
+async function indexHandler(req, res) {
   const { db, cache } = res.locals;
   const { q, category, lang, source, type, page = 1 } = req.query;
   const limit = 24, skip = (parseInt(page) - 1) * limit;
@@ -159,8 +160,13 @@ router.get('/', async (req, res) => {
   if (!sources && db) {
     try { sources = (await db.collection('books').distinct('sourceName')).filter(Boolean).sort(); cache.set('sources', sources, 600); } catch { sources = []; }
   }
-  res.render('index', { books, total, page: parseInt(page), pages: Math.ceil(total / limit), stats, categories, langs, sources: sources || [], q: q || '', category: category || '', lang: lang || '', source: source || '', error });
-});
+  res.render('index', { books, total, page: parseInt(page), pages: Math.ceil(total / limit), stats, categories, langs, sources: sources || [], q: q || '', category: category || '', lang: lang || '', source: source || '', canonical: req.prettyCanonical || null, error });
+}
+
+router.get('/', indexHandler);
+router.get('/category/:slug', (req, res) => { req.query.category = req.params.slug; req.prettyCanonical = `https://theopenstacks.apolochees.me/category/${req.params.slug}`; return indexHandler(req, res); });
+router.get('/source/:slug',   (req, res) => { req.query.source   = req.params.slug; req.prettyCanonical = `https://theopenstacks.apolochees.me/source/${req.params.slug}`;   return indexHandler(req, res); });
+router.get('/type/:slug',     (req, res) => { req.query.type     = req.params.slug; req.prettyCanonical = `https://theopenstacks.apolochees.me/type/${req.params.slug}`;     return indexHandler(req, res); });
 
 router.get('/random', async (req, res) => {
   const { db } = res.locals;
