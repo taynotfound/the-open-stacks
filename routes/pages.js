@@ -227,6 +227,22 @@ router.get('/book/:slug', async (req, res) => {
     ).map(f => ({ url: `https://archive.org/download/${identifier}/${f.name}`, name: f.name, format: f.format }));
     if (rawFiles.length) book = { ...book, files: rawFiles };
     if (meta.mediatype === 'audio' && book.category === 'theory-and-politics') book = { ...book, category: 'audio' };
+
+    // ponytail: fetch TXT body if available — reuse fetchRaw (handles ETag)
+    const txtFile = rawFiles.find(f => /\.txt$/i.test(f.name) && !/files\.xml|meta\.xml/i.test(f.name));
+    if (txtFile && !body) {
+      const ck = `ia:body:${identifier}`;
+      const cached = cache.get(ck);
+      if (cached) { body = cached; }
+      else {
+        const result = await fetchRaw(txtFile.url).catch(() => null);
+        if (result?.body) {
+          const content = result.body.slice(0, 200000); // ponytail: cap at 200k chars
+          body = mdToHtml(content);
+          cache.set(ck, body, 7200);
+        }
+      }
+    }
   }
 
   if (book.hasBody && book.path) {

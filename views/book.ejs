@@ -171,11 +171,9 @@
   </div>
 </main>
 
-<%- include('_footer', { stats }) %>
-
 <% if (related && related.length > 0) { %>
 <section class="related-section container">
-  <div class="related-hd"><span class="related-label">Related</span></div>
+  <div class="related-hd"><span class="related-label">You might also like</span></div>
   <div class="related-grid">
     <% related.forEach(r => { %>
     <a href="/book/<%= r.slug %>" class="related-card">
@@ -186,6 +184,8 @@
   </div>
 </section>
 <% } %>
+
+<%- include('_footer', { stats }) %>
 
 <script>
 // Theme toggle
