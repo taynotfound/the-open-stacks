@@ -86,23 +86,45 @@
       <% } %>
 
       <% if (book.files && book.files.length > 0) { %>
-      <% const audioFile = book.files.find(f => { const u=typeof f==='string'?f:(f.url||f); return /\.mp3$/i.test(u.split('?')[0]); }) || book.files.find(f => { const u=typeof f==='string'?f:(f.url||f); return /\.(ogg|aac|flac|opus)$/i.test(u.split('?')[0]); }); %>
-      <% if (audioFile) { const audioUrl = typeof audioFile==='string'?audioFile:(audioFile.url||audioFile); const audioExt=(audioUrl.split('.').pop()||'').toLowerCase(); const audioMime={mp3:'audio/mpeg',ogg:'audio/ogg',aac:'audio/aac',flac:'audio/flac',opus:'audio/ogg'}[audioExt]||'audio/mpeg'; %>
+      <%
+        const AUDIO_EXT = /\.(mp3|ogg|aac|flac|opus)$/i;
+        const MIME = {mp3:'audio/mpeg',ogg:'audio/ogg',aac:'audio/aac',flac:'audio/flac',opus:'audio/ogg'};
+        // group by base name → pick best format per track (prefer mp3)
+        const trackMap = {};
+        book.files.forEach(f => {
+          const url = typeof f==='string'?f:(f.url||f);
+          const name = (f.name||url.split('/').pop());
+          const ext = (name.split('.').pop()||'').toLowerCase();
+          if (!AUDIO_EXT.test(name)) return;
+          const base = name.replace(/\.[^.]+$/, '');
+          if (!trackMap[base] || ext==='mp3') trackMap[base] = { url, name, ext };
+        });
+        const tracks = Object.values(trackMap);
+        const nonAudio = book.files.filter(f => { const u=typeof f==='string'?f:(f.url||f); return !AUDIO_EXT.test((f.name||u.split('/').pop())); });
+      %>
+      <% if (tracks.length) { %>
       <div class="book-player">
         <span class="section-label">Listen</span>
-        <audio controls preload="none" style="width:100%;margin-top:.5rem">
-          <source src="<%= audioUrl %>" type="<%= audioMime %>">
-        </audio>
+        <% tracks.forEach(t => { %>
+        <div style="margin-top:.5rem">
+          <% if (tracks.length > 1) { %><small style="color:var(--muted);display:block;margin-bottom:.2rem"><%= t.name %></small><% } %>
+          <audio controls preload="none" style="width:100%">
+            <source src="<%= t.url %>" type="<%= MIME[t.ext]||'audio/mpeg' %>">
+          </audio>
+        </div>
+        <% }) %>
       </div>
       <% } %>
+      <% if (nonAudio.length) { %>
       <div class="book-downloads">
         <span class="section-label">Files</span>
         <div class="download-row">
-          <% book.files.forEach(f => { const url = typeof f==='string'?f:(f.url||f); const name = f.name || url.split('/').pop(); const ext=(url.split('?')[0].split('.').pop()||'FILE').toUpperCase(); %>
+          <% nonAudio.forEach(f => { const url=typeof f==='string'?f:(f.url||f); const name=f.name||url.split('/').pop(); const ext=(url.split('?')[0].split('.').pop()||'FILE').toUpperCase(); %>
             <a href="<%= url %>" target="_blank" rel="noopener" class="btn-download" title="<%= name %>"><%= ext %></a>
           <% }) %>
         </div>
       </div>
+      <% } %>
       <% } %>
 
       <% if (body) { %>

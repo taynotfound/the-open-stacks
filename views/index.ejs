@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>The Open Stacks — Free Radical Library</title>
-  <meta name="description" content="A free, open-access archive of anarchist, anti-fascist, and radical political texts. <%= stats.total ? stats.total.toLocaleString() + ' texts' : '' %> — no account, no tracking.">
+  <meta name="description" content="A free, open-access archive of anarchist, anti-fascist, and radical political texts. <%= stats.total ? stats.total.toLocaleString() + ' items' : '' %> — no account, no tracking.">
   <meta property="og:title" content="The Open Stacks">
   <meta property="og:description" content="Host what they'd erase. A living mirror of radical, anarchist, and endangered texts.">
   <meta property="og:image" content="/logo.svg">
@@ -33,7 +33,7 @@
   </div>
   <div class="nav-right">
     <button id="themeToggle" class="theme-toggle" title="Toggle light mode">☀</button>
-    <%= stats.total ? stats.total.toLocaleString() : '—' %> texts
+    <%= stats.total ? stats.total.toLocaleString() : '—' %> items
   </div>
 </nav>
 <script>
@@ -79,8 +79,8 @@ document.getElementById('themeToggle').addEventListener('click',()=>{const n=doc
 <main class="container">
   <div class="results-meta">
     <% if (q) { %>Results for "<strong><%= q %></strong>" — <%= total.toLocaleString() %> found
-    <% } else if (category) { %><strong><%= category %></strong> — <%= total.toLocaleString() %> texts
-    <% } else { %><%= total.toLocaleString() %> texts in the collection<% } %>
+    <% } else if (category) { %><strong><%= category %></strong> — <%= total.toLocaleString() %> items
+    <% } else { %><%= total.toLocaleString() %> items in the collection<% } %>
   </div>
 
   <div class="book-grid">
