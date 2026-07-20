@@ -984,9 +984,9 @@ function buildLangs(){
   try{
     const {books:bs, sha, cached} = await loadTree();
     books = bs; books.forEach(b=>bySlug[b.slug]=b); window.__IDX = books;
-    const hosted = books.reduce((n,b)=>n+b.files.filter(f=>f.hosted).length,0);
-    const total = books.reduce((n,b)=>n+b.files.length,0);
-    el("sub").innerHTML = `${books.length} items · <span class="badge">${hosted}</span>/${total} files self-hosted · <a href="${API.replace('api.github.com/repos','github.com')}/commit/${sha}" target="_blank" rel="noopener noreferrer">@${sha.slice(0,7)}</a>`;
+    const hosted = books.filter(b=>b.hasBody).length;
+    const total = books.length;
+    el("sub").innerHTML = `${books.length.toLocaleString()} items · <span class="badge">${hosted.toLocaleString()}</span>/${total.toLocaleString()} with full text · <a href="${API.replace('api.github.com/repos','github.com')}/commit/${sha}" target="_blank" rel="noopener noreferrer">@${sha.slice(0,7)}</a>`;
     buildCats();
     buildLangs();
     renderRecent();
