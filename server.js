@@ -14,6 +14,7 @@ async function connectDB() {
     const client = new MongoClient(MONGODB_URI);
     await client.connect();
     db = client.db('open-stacks');
+    db.collection('books').createIndex({ title: 'text', author: 'text', desc: 'text', tags: 'text', body: 'text' }).catch(() => {});
     console.log('Connected to MongoDB');
   } catch (err) {
     console.error('MongoDB connection failed:', err.message);
@@ -23,6 +24,7 @@ async function connectDB() {
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
 app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.json({ limit: '20mb' }));
 app.use((req, res, next) => { res.locals.db = db; res.locals.cache = cache; res.locals.req = req; next(); });
 
 app.use('/', require('./routes/pages'));

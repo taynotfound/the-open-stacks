@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Reading List — The Open Stacks</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Crimson+Pro:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<nav class="nav">
+  <a href="/" class="nav-logo">
+    <img src="/logo.svg" alt="">
+    The Open Stacks
+    <span class="nav-logo-sub">by Kommando 161</span>
+  </a>
+  <div class="nav-right"><%= stats.total ? stats.total.toLocaleString() : '—' %> texts</div>
+</nav>
+
+<main class="container" style="padding-top:2rem;min-height:60vh">
+  <div class="results-meta" style="margin-bottom:1.5rem">
+    <strong>Reading List</strong> — saved locally in your browser, no account needed
+  </div>
+  <div id="rl-empty" style="display:none;color:var(--muted);font-size:0.95rem">
+    Nothing saved yet. Hit <strong>☆ Save</strong> on any book page.
+  </div>
+  <div class="book-grid" id="rl-grid"></div>
+  <div style="margin-top:2rem;display:none" id="rl-clear-wrap">
+    <button class="btn" id="rl-clear">Clear all</button>
+  </div>
+</main>
+
+<%- include('_footer', { stats }) %>
+<script src="/app.js"></script>
+<script>
+(function(){
+  const grid = document.getElementById('rl-grid');
+  const empty = document.getElementById('rl-empty');
+  const clearBtn = document.getElementById('rl-clear');
+  const clearWrap = document.getElementById('rl-clear-wrap');
+
+  function getList() {
+    try { return JSON.parse(localStorage.getItem('os_reading_list') || '[]'); } catch { return []; }
+  }
+
+  function render() {
+    const list = getList();
+    if (!list.length) { empty.style.display = ''; grid.innerHTML = ''; clearWrap.style.display = 'none'; return; }
+    empty.style.display = 'none';
+    clearWrap.style.display = '';
+    grid.innerHTML = list.map(item => `
+      <a href="/book/${item.slug}" class="book-card">
+        <div class="book-cover"><div class="cover-placeholder"><span class="cover-initial">${(item.title||'?')[0].toUpperCase()}</span></div></div>
+        <div class="book-info">
+          <div class="book-title-card">${item.title}</div>
+          <button class="btn-remove" onclick="event.preventDefault();removeItem('${item.slug}')">✕ Remove</button>
+        </div>
+      </a>`).join('');
+  }
+
+  window.removeItem = function(slug) {
+    const list = getList().filter(i => i.slug !== slug);
+    localStorage.setItem('os_reading_list', JSON.stringify(list));
+    render();
+  };
+
+  clearBtn.addEventListener('click', () => { localStorage.removeItem('os_reading_list'); render(); });
+  render();
+})();
+</script>
+</body>
+</html>

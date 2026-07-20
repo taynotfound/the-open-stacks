@@ -1,6 +1,7 @@
 const express = require('express');
 const https = require('https');
 const router = express.Router();
+const { ghApi, ghGet } = require('../lib/github');
 
 function post(url, data, headers={}) {
   return new Promise((resolve, reject) => {
@@ -29,7 +30,7 @@ function get(url) {
   });
 }
 
-// MyMemory — free, no key needed, 5000 chars/day per IP but works serverless
+// MyMemory
 router.post('/mymemory', async (req, res) => {
   try {
     const { text, sourceLang } = req.body;
@@ -86,10 +87,41 @@ function splitChunks(text, max) {
   const chunks = []; let cur = '';
   for (const p of paras) {
     if (cur.length + p.length > max && cur) { chunks.push(cur.trim()); cur = ''; }
-    cur += (cur ? '\n\n' : '') + p;
+    // hard-split single paragraphs that exceed max
+    if (p.length > max) {
+      for (let i = 0; i < p.length; i += max) chunks.push(p.slice(i, i + max));
+    } else {
+      cur += (cur ? '\n\n' : '') + p;
+    }
   }
   if (cur.trim()) chunks.push(cur.trim());
   return chunks.length ? chunks : [text];
 }
+
+// Contribute a completed translation as a PR
+router.post('/contribute', async (req, res) => {
+  const { slug, category, title, targetLang, translatedText } = req.body;
+  if (!slug || !category || !translatedText || !targetLang)
+    return res.status(400).json({ error: 'Missing required fields' });
+  const branch = `translate/${slug}-${targetLang}-${Date.now()}`;
+  const filePath = `books/${category}/${slug}.${targetLang}.md`;
+  const mdContent = `---\ntranslatedFrom: en\ntranslatedTo: ${targetLang}\nsource_slug: ${slug}\n---\n\n${translatedText}`;
+  try {
+    const ref = await ghGet('git/ref/heads/main');
+    const sha = ref.object?.sha;
+    if (!sha) return res.status(500).json({ error: 'Could not read repo HEAD' });
+    await ghApi('POST', 'git/refs', { ref: `refs/heads/${branch}`, sha });
+    await ghApi('PUT', `contents/${filePath}`, {
+      message: `translate: add ${targetLang} translation of "${title || slug}"`,
+      content: Buffer.from(mdContent).toString('base64'), branch
+    });
+    const pr = await ghApi('POST', 'pulls', {
+      title: `Translation [${targetLang}]: ${title || slug}`,
+      body: `Machine-assisted translation to \`${targetLang}\` of [${title || slug}](books/${category}/${slug}.md).\n\nPlease review for accuracy before merging.`,
+      head: branch, base: 'main'
+    });
+    res.json({ pr: pr.html_url });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
 
 module.exports = router;

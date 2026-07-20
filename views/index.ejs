@@ -25,7 +25,10 @@
     <span class="nav-logo-sub">by Kommando 161</span>
   </a>
   <div class="nav-search">
-    <input type="text" id="search-input" placeholder="Search texts, authors, topics…" value="<%= q %>" autocomplete="off" spellcheck="false">
+    <div class="search-wrap">
+      <input type="text" id="search-input" placeholder="Search texts, authors, topics…" value="<%= q %>" autocomplete="off" spellcheck="false">
+      <div id="search-suggest" class="search-suggest"></div>
+    </div>
   </div>
   <div class="nav-right">
     <button id="themeToggle" class="theme-toggle" title="Toggle light mode">☀</button>
@@ -58,8 +61,14 @@ document.getElementById('themeToggle').addEventListener('click',()=>{const n=doc
   <a href="/" class="pill<%= !category ? ' active' : '' %>">All</a>
   <% categories.forEach(cat => { %>
     <a href="/?category=<%= encodeURIComponent(cat) %><%= q ? '&q='+encodeURIComponent(q) : '' %>"
-       class="pill<%= category === cat ? ' active' : '' %>"><%= cat %></a>
+       class="pill<%= category === cat ? ' active' : '' %>"><%= cat.replace(/-/g,' ') %></a>
   <% }) %>
+</div>
+<div class="filter-bar filter-bar-secondary">
+  <a href="/random" class="pill pill-random">⚄ Random</a>
+  <a href="/" class="pill<%= !lang ? ' active' : '' %>">All languages</a>
+  <a href="/?<%= new URLSearchParams({...q?{q}:{}, lang:'en'}).toString() %>" class="pill<%= lang==='en' ? ' active' : '' %>">English</a>
+  <a href="/?<%= new URLSearchParams({...q?{q}:{}, lang:'de'}).toString() %>" class="pill<%= lang==='de' ? ' active' : '' %>">Deutsch</a>
 </div>
 
 <% if (error) { %><div class="error-banner" style="margin:1rem 1.5rem"><%= error %></div><% } %>
@@ -85,7 +94,7 @@ document.getElementById('themeToggle').addEventListener('click',()=>{const n=doc
         <div class="book-title-card"><%= book.title %></div>
         <% if (book.author) { %><div class="book-author-card"><%= book.author %></div><% } %>
         <div class="book-badges">
-          <% if (book.category) { %><span class="badge badge-cat"><%= book.category %></span><% } %>
+          <% if (book.category) { %><span class="badge badge-cat"><%= book.category.replace(/-/g,' ') %></span><% } %>
           <% if (book.hasBody) { %><span class="badge badge-text">Full text</span><% } %>
         </div>
       </div>
@@ -101,6 +110,23 @@ document.getElementById('themeToggle').addEventListener('click',()=>{const n=doc
   </div>
   <% } %>
 </main>
+
+<section class="newswire-section">
+  <div class="newswire-inner container">
+    <div class="newswire-hd">
+      <span class="newswire-label">Newswire</span>
+      <a href="https://de.indymedia.org/newswire" target="_blank" rel="noopener" class="newswire-src">de.indymedia.org ↗</a>
+    </div>
+    <div class="newswire-feed" id="newswireFeed"><span class="newswire-loading">Loading…</span></div>
+  </div>
+</section>
+<script>
+fetch('/api/news').then(r=>r.json()).then(items=>{
+  const el=document.getElementById('newswireFeed');
+  if(!items.length){el.innerHTML='<span class="newswire-empty">—</span>';return;}
+  el.innerHTML=items.map((it,i)=>`<a href="${it.url}" target="_blank" rel="noopener" class="nw-item${i===0?' nw-lead':''}">${it.title}</a>`).join('');
+}).catch(()=>{});
+</script>
 
 <%- include('_footer', { stats }) %>
 <script src="/app.js"></script>

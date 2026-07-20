@@ -75,9 +75,12 @@
       <% } %>
 
       <% if (book.desc) { %><div class="book-desc"><%= book.desc %></div><% } %>
+      <div class="book-actions">
+        <button class="btn-save" id="saveBtn" data-slug="<%= book.slug %>" data-title="<%= book.title.replace(/"/g,'&quot;') %>">☆ Save</button>
+      </div>
       <% if (book.tags && book.tags.length > 0) { %>
       <div class="book-tags">
-        <% book.tags.forEach(t => { %><span class="tag"><%= t %></span><% }) %>
+        <% book.tags.forEach(t => { %><span class="tag"><%= t.replace(/-/g, ' ') %></span><% }) %>
       </div>
       <% } %>
 
@@ -138,6 +141,20 @@
 
 <%- include('_footer', { stats }) %>
 
+<% if (related && related.length > 0) { %>
+<section class="related-section container">
+  <div class="related-hd"><span class="related-label">Related</span></div>
+  <div class="related-grid">
+    <% related.forEach(r => { %>
+    <a href="/book/<%= r.slug %>" class="related-card">
+      <% if (r.cover) { %><img src="<%= r.cover %>" alt="" loading="lazy"><% } else { %><div class="related-placeholder"><%= (r.title||'?')[0].toUpperCase() %></div><% } %>
+      <span><%= r.title %></span>
+    </a>
+    <% }) %>
+  </div>
+</section>
+<% } %>
+
 <script>
 // Theme toggle
 const toggle = document.getElementById('themeToggle');
@@ -145,13 +162,6 @@ if (toggle) {
   const apply = t => { document.documentElement.dataset.theme = t; localStorage.theme = t; toggle.textContent = t === 'light' ? '☾' : '☀'; };
   apply(localStorage.theme === 'light' ? 'light' : 'dark');
   toggle.addEventListener('click', () => apply(document.documentElement.dataset.theme === 'light' ? 'dark' : 'light'));
-}
-
-// Sticky TOC
-const toc = document.getElementById('toc');
-if (toc) {
-  const observer = new IntersectionObserver(([e]) => toc.classList.toggle('toc-sticky', !e.isIntersecting), { threshold: 0, rootMargin: '-60px 0px 0px 0px' });
-  observer.observe(toc);
 }
 
 <% if (body && book.language && book.language !== 'en') { %>
@@ -173,7 +183,12 @@ txBtn.addEventListener('click', async () => {
   }
   const engine = txSrc.value;
   const cached = localStorage.getItem(TX_CACHE_KEY + '_' + engine);
-  if (cached) { bodyText.innerHTML = cached; txBtn.textContent = '✕ Original'; txStatus.textContent = 'from cache'; translated = true; return; }
+  if (cached) {
+    bodyText.innerHTML = cached;
+    txBtn.textContent = '✕ Original';
+    txStatus.innerHTML = 'from cache — <button onclick="localStorage.removeItem(\''+TX_CACHE_KEY+'_'+engine+'\');txStatus.textContent=\'cleared\'" style="background:none;border:none;color:var(--accent);cursor:pointer;text-decoration:underline;font-size:0.82rem;padding:0">clear</button>';
+    translated = true; return;
+  }
 
   txBtn.disabled = true; txBtn.textContent = 'Translating…';
   const text = bodyText.innerText;
@@ -198,8 +213,23 @@ txBtn.addEventListener('click', async () => {
   localStorage.setItem(TX_CACHE_KEY+'_'+engine, html);
   bodyText.innerHTML = html;
   txBtn.disabled = false; txBtn.textContent = '✕ Original';
-  txStatus.textContent = `via ${engine==='google'?'Google':'MyMemory'}`;
+  txStatus.innerHTML = `via ${engine==='google'?'Google':'MyMemory'} — <button id="contribTx" class="tx-contribute-btn">contribute this translation →</button>`;
   translated = true;
+
+  document.getElementById('contribTx').addEventListener('click', async () => {
+    const btn = document.getElementById('contribTx');
+    btn.textContent = 'Submitting…'; btn.disabled = true;
+    const plainText = parts.join('\n\n');
+    try {
+      const r = await fetch('/api/translate/contribute', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ slug: '<%= book.slug %>', category: '<%= book.category %>', title: '<%= (book.title||"").replace(/'/g, "\\'") %>', targetLang: 'en', translatedText: plainText })
+      });
+      const d = await r.json();
+      if (d.error) throw new Error(d.error);
+      btn.outerHTML = `<a href="${d.pr}" target="_blank" rel="noopener" class="tx-contribute-btn">✓ PR opened →</a>`;
+    } catch(e) { btn.textContent = `✕ ${e.message}`; btn.disabled = false; }
+  });
 });
 <% } %>
 </script>

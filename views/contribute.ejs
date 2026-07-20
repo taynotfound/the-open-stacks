@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Contribute — The Open Stacks</title>
+  <meta name="description" content="Add a text to The Open Stacks. Pamphlets, zines, essays, books — if it's radical and at risk, it belongs here.">
+  <meta name="theme-color" content="#c8392b">
+  <link rel="icon" href="/logo.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Crimson+Pro:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<nav class="nav">
+  <a href="/" class="nav-logo">
+    <img src="/logo.svg" alt="The Open Stacks">
+    The Open Stacks
+    <span class="nav-logo-sub">by Kommando 161</span>
+  </a>
+  <div class="nav-right">
+    <button id="themeToggle" class="theme-toggle" title="Toggle light mode">☀</button>
+  </div>
+</nav>
+<script>
+const _t=localStorage.theme==='light'?'light':'dark';
+document.documentElement.dataset.theme=_t;
+document.getElementById('themeToggle').textContent=_t==='light'?'☾':'☀';
+document.getElementById('themeToggle').addEventListener('click',()=>{const n=document.documentElement.dataset.theme==='light'?'dark':'light';document.documentElement.dataset.theme=n;localStorage.theme=n;document.getElementById('themeToggle').textContent=n==='light'?'☾':'☀';});
+</script>
+
+<main class="page-inner">
+  <div class="page-header">
+    <h1>Contribute a Text</h1>
+    <p class="page-subtitle">Pamphlets. Zines. Essays. Books. If it's radical and at risk of erasure — it belongs here. Fill out what you know, paste the text or link a source, and we'll open a PR in the data repo for review.</p>
+  </div>
+
+  <div class="contribute-layout">
+    <div class="contribute-form-wrap">
+      <div id="success-banner" class="contrib-success" style="display:none">
+        <strong>✓ Submitted!</strong> Your contribution is now open for review:
+        <a id="pr-link" href="#" target="_blank" rel="noopener">View pull request →</a>
+      </div>
+      <div id="error-banner" class="contrib-error" style="display:none"></div>
+
+      <form id="contrib-form">
+        <div class="form-section-label">Required</div>
+        <div class="field-group">
+          <div class="field">
+            <label for="f-title">Title <span class="req">*</span></label>
+            <input type="text" id="f-title" name="title" required placeholder="e.g. The State and Revolution">
+          </div>
+          <div class="field">
+            <label for="f-category">Category <span class="req">*</span></label>
+            <select id="f-category" name="category" required>
+              <option value="">Select a category…</option>
+              <% cats.forEach(c => { %><option value="<%= c %>"><%= c %></option><% }) %>
+              <option value="other">other / new</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-section-label">Details</div>
+        <div class="field-group">
+          <div class="field">
+            <label for="f-author">Author</label>
+            <input type="text" id="f-author" name="author" placeholder="e.g. Rosa Luxemburg">
+          </div>
+          <div class="field">
+            <label for="f-language">Language</label>
+            <select id="f-language" name="language">
+              <option value="en">English</option>
+              <option value="de">German</option>
+              <option value="fr">French</option>
+              <option value="es">Spanish</option>
+              <option value="it">Italian</option>
+              <option value="pt">Portuguese</option>
+              <option value="ru">Russian</option>
+              <option value="zh">Chinese</option>
+              <option value="ar">Arabic</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="f-desc">Description / abstract</label>
+          <textarea id="f-desc" name="desc" rows="3" placeholder="A short description of what this text is and why it matters."></textarea>
+        </div>
+
+        <div class="field-group">
+          <div class="field">
+            <label for="f-tags">Tags <span class="field-hint">comma-separated</span></label>
+            <input type="text" id="f-tags" name="tags" placeholder="e.g. anarchism, feminism, labour">
+          </div>
+          <div class="field">
+            <label for="f-source">Source URL</label>
+            <input type="url" id="f-source" name="source" placeholder="https://…">
+          </div>
+        </div>
+
+        <div class="form-section-label">Content
+          <span class="field-hint">Paste the text directly — or just leave it blank and add the source URL. We can pull the full text later.</span>
+        </div>
+
+        <div class="contrib-tabs">
+          <button type="button" class="contrib-tab active" data-tab="paste">Paste text</button>
+          <button type="button" class="contrib-tab" data-tab="file">Upload file (.txt / .md)</button>
+        </div>
+
+        <div id="tab-paste" class="contrib-tab-panel active">
+          <div class="field">
+            <textarea id="f-text" name="textContent" rows="14" placeholder="Paste the full text here (Markdown or plain text). Formatting like **bold**, ## headings, and > blockquotes will be rendered."></textarea>
+          </div>
+        </div>
+        <div id="tab-file" class="contrib-tab-panel">
+          <div class="field">
+            <label class="file-drop" id="file-drop">
+              <input type="file" id="f-file" accept=".txt,.md,.markdown,.pdf" style="display:none">
+              <span class="file-drop-icon">⇪</span>
+              <span id="file-label">Drop a .txt, .md, or .pdf — PDFs get OCR'd automatically</span>
+            </label>
+          </div>
+        </div>
+
+        <div class="form-footer">
+          <button type="submit" class="btn-submit" id="submit-btn">
+            <span id="submit-label">Open pull request →</span>
+          </button>
+          <p class="form-note">This opens a PR on <a href="https://github.com/taynotfound/open-stacks-library" target="_blank" rel="noopener">open-stacks-library</a>. A maintainer will review and merge it. No account needed.</p>
+        </div>
+      </form>
+    </div>
+
+    <aside class="contribute-sidebar">
+      <div class="sidebar-card">
+        <h3>What belongs here</h3>
+        <ul>
+          <li>Anarchist, communist, socialist texts</li>
+          <li>Anti-fascist theory and history</li>
+          <li>Labour movement pamphlets</li>
+          <li>Feminist and queer liberation writing</li>
+          <li>Anti-colonial and decolonial texts</li>
+          <li>Anything at risk of being removed or paywalled</li>
+        </ul>
+      </div>
+      <div class="sidebar-card">
+        <h3>What doesn't belong</h3>
+        <ul class="red-list">
+          <li>Far-right or fascist content</li>
+          <li>Texts with no political relevance</li>
+          <li>Pure spam or filler</li>
+        </ul>
+      </div>
+      <div class="sidebar-card">
+        <h3>The process</h3>
+        <ol class="process-list">
+          <li>Fill the form and submit</li>
+          <li>A GitHub PR is opened automatically</li>
+          <li>A maintainer reviews the content</li>
+          <li>On merge, it appears in the library within minutes</li>
+        </ol>
+      </div>
+      <div class="sidebar-card red-card">
+        <strong>Take what you need.</strong><br>Give what you can.<br><br>
+        — Kommando 161 ⚑
+      </div>
+    </aside>
+  </div>
+</main>
+
+<%- include('_footer', { stats }) %>
+
+<script>
+// Theme applied above already
+
+// Tab switching
+document.querySelectorAll('.contrib-tab').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.contrib-tab').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.contrib-tab-panel').forEach(p => p.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+  });
+});
+
+// PDF.js + Tesseract CDN loaded lazily on first PDF drop
+let pdfjsLib, Tesseract;
+
+async function extractPDF(file) {
+  fileLabel.textContent = '⏳ Loading PDF…';
+
+  if (!pdfjsLib) {
+    await new Promise((res, rej) => {
+      const s = document.createElement('script');
+      s.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
+      s.onload = res; s.onerror = rej; document.head.appendChild(s);
+    });
+    pdfjsLib = window['pdfjs-dist/build/pdf'];
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+  }
+
+  const arrayBuf = await file.arrayBuffer();
+  // store raw PDF bytes for server upload
+  window._pdfBytes = arrayBuf;
+
+  const pdf = await pdfjsLib.getDocument({ data: arrayBuf }).promise;
+  const pages = [];
+
+  for (let i = 1; i <= pdf.numPages; i++) {
+    fileLabel.textContent = `⏳ Extracting page ${i}/${pdf.numPages}…`;
+    const page = await pdf.getPage(i);
+    const content = await page.getTextContent();
+    const pageText = content.items.map(it => it.str).join(' ').trim();
+
+    if (pageText.length > 20) {
+      pages.push(pageText);
+    } else {
+      // image-only page — OCR it
+      fileLabel.textContent = `🔍 OCR page ${i}/${pdf.numPages}…`;
+      if (!Tesseract) {
+        await new Promise((res, rej) => {
+          const s = document.createElement('script');
+          s.src = 'https://cdnjs.cloudflare.com/ajax/libs/tesseract.js/5.0.4/tesseract.min.js';
+          s.onload = res; s.onerror = rej; document.head.appendChild(s);
+        });
+        Tesseract = window.Tesseract;
+      }
+      const vp = page.getViewport({ scale: 2 });
+      const canvas = document.createElement('canvas');
+      canvas.width = vp.width; canvas.height = vp.height;
+      await page.render({ canvasContext: canvas.getContext('2d'), viewport: vp }).promise;
+      const { data: { text } } = await Tesseract.recognize(canvas, 'eng+deu+fra+spa');
+      pages.push(text.trim());
+    }
+  }
+
+  return pages.join('\n\n');
+}
+
+// File reader
+const fileInput = document.getElementById('f-file');
+const fileLabel = document.getElementById('file-label');
+const fileDrop = document.getElementById('file-drop');
+
+fileInput.addEventListener('change', async () => {
+  const file = fileInput.files[0];
+  if (!file) return;
+  window._pdfBytes = null;
+
+  if (file.name.endsWith('.pdf')) {
+    try {
+      const text = await extractPDF(file);
+      document.getElementById('f-text').value = text;
+      fileLabel.textContent = `✓ ${file.name} — ${pdf_pages_count(text)} extracted`;
+      document.querySelectorAll('.contrib-tab')[0].click();
+    } catch(e) {
+      fileLabel.textContent = `✕ OCR failed: ${e.message}`;
+    }
+  } else {
+    fileLabel.textContent = file.name;
+    const reader = new FileReader();
+    reader.onload = e => {
+      document.getElementById('f-text').value = e.target.result;
+      document.querySelectorAll('.contrib-tab')[0].click();
+    };
+    reader.readAsText(file);
+  }
+});
+
+function pdf_pages_count(text) {
+  const words = text.split(/\s+/).length;
+  return `~${words.toLocaleString()} words`;
+}
+
+['dragover','dragleave','drop'].forEach(ev => {
+  fileDrop.addEventListener(ev, e => {
+    e.preventDefault();
+    if (ev === 'drop') {
+      const file = e.dataTransfer.files[0];
+      if (file) { fileInput.files = e.dataTransfer.files; fileInput.dispatchEvent(new Event('change')); }
+    }
+    fileDrop.classList.toggle('dragging', ev === 'dragover');
+  });
+});
+
+// Submit
+document.getElementById('contrib-form').addEventListener('submit', async e => {
+  e.preventDefault();
+  const btn = document.getElementById('submit-btn');
+  const label = document.getElementById('submit-label');
+  const err = document.getElementById('error-banner');
+  const succ = document.getElementById('success-banner');
+  err.style.display = 'none'; succ.style.display = 'none';
+  btn.disabled = true; label.textContent = 'Opening PR…';
+
+  const body = {
+    title: document.getElementById('f-title').value.trim(),
+    author: document.getElementById('f-author').value.trim(),
+    category: document.getElementById('f-category').value,
+    desc: document.getElementById('f-desc').value.trim(),
+    tags: document.getElementById('f-tags').value,
+    source: document.getElementById('f-source').value.trim(),
+    language: document.getElementById('f-language').value,
+    textContent: document.getElementById('f-text').value.trim(),
+    pdfBase64: window._pdfBytes ? btoa(String.fromCharCode(...new Uint8Array(window._pdfBytes))) : null,
+  };
+
+  try {
+    const r = await fetch('/api/contribute', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+    const d = await r.json();
+    if (d.error) throw new Error(d.error);
+    document.getElementById('pr-link').href = d.pr;
+    succ.style.display = 'block';
+    e.target.reset();
+    label.textContent = 'Open another →';
+  } catch(ex) {
+    err.style.display = 'block';
+    err.textContent = '✕ ' + ex.message;
+    label.textContent = 'Open pull request →';
+  }
+  btn.disabled = false;
+});
+</script>
+</body>
+</html>
