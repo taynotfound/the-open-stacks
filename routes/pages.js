@@ -57,7 +57,12 @@ function mdToHtml(text) {
   const out = [];
   let inQuote = false, quoteLines = [], inAbbr = false, abbrLines = [];
 
-  const flushQuote = () => { if (quoteLines.length) { out.push(`<blockquote>${quoteLines.join('<br>')}</blockquote>`); quoteLines = []; } inQuote = false; };
+  const flushQuote = (attr) => {
+    if (!quoteLines.length) { inQuote = false; return; }
+    const attrHtml = attr ? `<cite>${attr}</cite>` : '';
+    out.push(`<blockquote>${quoteLines.join('<br>')}${attrHtml}</blockquote>`);
+    quoteLines = []; inQuote = false;
+  };
   const flushAbbr = () => {
     if (!abbrLines.length) { inAbbr = false; return; }
     const rows = abbrLines.map(l => { const m = l.match(/^([A-Z]{2,})\s{2,}(.+)$/); return m ? `<tr><td class="abbr-key">${m[1]}</td><td>${m[2]}</td></tr>` : `<tr><td colspan="2">${l}</td></tr>`; });
@@ -69,7 +74,14 @@ function mdToHtml(text) {
     const l = lines[li];
     // blockquote: lines starting with > OR indented italic quote blocks
     if (l.startsWith('> ')) { inQuote = true; quoteLines.push(l.slice(2)); continue; }
-    if (inQuote && l.trim() === '') { flushQuote(); out.push(''); continue; }
+    if (l === '>') { if (inQuote) { quoteLines.push(''); } else { inQuote = true; } continue; }
+    if (inQuote && l.trim() === '') {
+      // peek ahead for attribution: -Author or —Author on next non-empty line
+      const next = lines[li + 1] || '';
+      if (/^[-—]/.test(next.trim())) { flushQuote(next.trim().replace(/^[-—]\s*/, '')); li++; }
+      else flushQuote();
+      out.push(''); continue;
+    }
     if (inQuote) { quoteLines.push(l); continue; }
 
     // abbreviation table: lines like "WORD    definition..."
@@ -231,6 +243,12 @@ router.get('/book/:slug', async (req, res, next) => {
     if (book) cache.set(`book:${slug}`, book, 300);
   }
   if (!book) return res.status(404).render('book', { book: null, body: null, toc: [], stats, error: 'Text not found.' });
+
+  // derive cover from body if missing
+  if (!book.cover && book.body) {
+    const m = book.body.match(/\[\[(https?:\/\/[^\]\s\]]+)/) || book.body.match(/!\[[^\]]*\]\((https?:\/\/[^)]+)\)/);
+    if (m) book.cover = m[1];
+  }
 
   // Find translations of this book (books where originalSlug === slug)
   let translations = [];

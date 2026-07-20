@@ -149,5 +149,17 @@ router.post('/translate/deepl', async (req, res) => {
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
+// Related texts
+router.get('/related/:slug', async (req, res) => {
+  const { db } = res.locals;
+  if (!db) return res.json([]);
+  const book = await db.collection('books').findOne({ slug: req.params.slug }, { projection: { category: 1, tags: 1 } });
+  if (!book) return res.json([]);
+  const q = { slug: { $ne: req.params.slug }, $or: [{ category: book.category }, ...(book.tags||[]).map(t=>({tags:t}))] };
+  const related = await db.collection('books').find(q).project({ slug:1, title:1, author:1, cover:1, category:1 }).limit(4).toArray();
+  res.json(related);
+});
+
 module.exports = router;
+
 

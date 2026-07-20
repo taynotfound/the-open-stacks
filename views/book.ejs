@@ -41,6 +41,14 @@
 </head>
 <body>
 <%- include('_nav', { showSearch: false }) %>
+<div id="read-progress"></div>
+
+<% if (book.cover) { %>
+<div class="book-cover-hero">
+  <img src="<%= book.cover %>" alt="">
+  <div class="hero-overlay"></div>
+</div>
+<% } %>
 
 <main class="book-page">
   <div class="book-page-inner">
@@ -84,12 +92,20 @@
       <% if (book.desc) { %><div class="book-desc"><%= book.desc %></div><% } %>
       <div class="book-actions">
         <button class="btn-save" id="saveBtn" data-slug="<%= book.slug %>" data-title="<%= book.title.replace(/"/g,'&quot;') %>">☆ Save</button>
+        <button class="btn-share" id="shareBtn">↗ Share</button>
+        <button class="btn-share" id="shortcutsBtn" title="Keyboard shortcuts">⌨ ?</button>
       </div>
+      <p class="shortcuts-hint"><kbd>j</kbd>/<kbd>k</kbd> scroll · <kbd>t</kbd> translate · <kbd>b</kbd> bookmark · <kbd>?</kbd> all shortcuts</p>
       <% if (book.tags && book.tags.length > 0) { %>
       <div class="book-tags">
         <% book.tags.forEach(t => { %><span class="tag"><%= t.replace(/-/g, ' ') %></span><% }) %>
       </div>
       <% } %>
+
+      <section class="related-section" style="display:none">
+        <h3>Related texts</h3>
+        <div class="related-grid" id="relatedGrid"></div>
+      </section>
 
       <% if (book.files && book.files.length > 0) { %>
       <%
@@ -214,6 +230,121 @@
 
 <%- include('_footer', { stats }) %>
 
+<!-- Floating TOC (populated by JS) -->
+<nav class="book-toc" id="bookToc"></nav>
+
+<!-- Quote bar -->
+<div id="quote-bar"><button id="quoteCopy">❝ Copy quote</button><button id="quoteClose">✕</button></div>
+
+<!-- Shortcuts modal -->
+<div id="shortcuts-modal">
+  <div id="shortcuts-inner">
+    <button class="shortcuts-close" id="shortcutsCloseBtn">✕</button>
+    <h3>Keyboard Shortcuts</h3>
+    <table>
+      <tr><td>j / ↓</td><td>Scroll down</td></tr>
+      <tr><td>k / ↑</td><td>Scroll up</td></tr>
+      <tr><td>t</td><td>Translate</td></tr>
+      <tr><td>b</td><td>Bookmark / save</td></tr>
+      <tr><td>s</td><td>Share</td></tr>
+      <tr><td>?</td><td>This panel</td></tr>
+      <tr><td>Esc</td><td>Close panel</td></tr>
+    </table>
+  </div>
+</div>
+
+<% if (book) { %>
+<script>
+const BOOK_SLUG = '<%= book.slug %>';
+const BOOK_TITLE = '<%= (book.title||'').replace(/'/g, "\\'") %>';
+
+// ── Reading progress ──
+const prog = document.getElementById('read-progress');
+if (prog) {
+  window.addEventListener('scroll', () => {
+    const h = document.documentElement;
+    const pct = h.scrollTop / (h.scrollHeight - h.clientHeight) * 100;
+    prog.style.width = Math.min(100, pct) + '%';
+  }, { passive: true });
+}
+
+// ── TOC ──
+const tocEl = document.getElementById('bookToc');
+const headings = [...document.querySelectorAll('.body-text h2, .body-text h3')];
+if (tocEl && headings.length > 2) {
+  tocEl.innerHTML = headings.map(h =>
+    `<a href="#${h.id}" data-id="${h.id}">${h.tagName==='H3'?'&nbsp;&nbsp;':''}${h.textContent.trim()}</a>`
+  ).join('');
+  const tocLinks = [...tocEl.querySelectorAll('a')];
+  const obs = new IntersectionObserver(entries => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        tocLinks.forEach(a => a.classList.toggle('active', a.dataset.id === e.target.id));
+      }
+    });
+  }, { rootMargin: '-20% 0px -70% 0px' });
+  headings.forEach(h => obs.observe(h));
+}
+
+// ── Quote bar ──
+const qBar = document.getElementById('quote-bar');
+const qCopy = document.getElementById('quoteCopy');
+const qClose = document.getElementById('quoteClose');
+document.addEventListener('mouseup', () => {
+  const sel = window.getSelection();
+  if (!sel || sel.isCollapsed || !sel.toString().trim()) { qBar.style.display='none'; return; }
+  const r = sel.getRangeAt(0).getBoundingClientRect();
+  qBar.style.cssText = `display:flex;top:${r.top + window.scrollY - 40}px;left:${r.left + r.width/2 - 60}px`;
+});
+qCopy.addEventListener('click', () => {
+  const text = window.getSelection().toString().trim();
+  navigator.clipboard.writeText(`> ${text}\n\n— ${BOOK_TITLE} (theopenstacks.apolochees.me/book/${BOOK_SLUG})`);
+  qCopy.textContent = '✓ Copied!'; setTimeout(() => { qCopy.textContent='❝ Copy quote'; qBar.style.display='none'; }, 1500);
+});
+qClose.addEventListener('click', () => qBar.style.display='none');
+
+// ── Share ──
+document.getElementById('shareBtn')?.addEventListener('click', () => {
+  const url = location.href;
+  if (navigator.share) { navigator.share({ title: BOOK_TITLE, url }); }
+  else { navigator.clipboard.writeText(url); document.getElementById('shareBtn').textContent='✓ Copied!'; setTimeout(()=>{document.getElementById('shareBtn').textContent='↗ Share';},2000); }
+});
+
+// ── Shortcuts modal ──
+const modal = document.getElementById('shortcuts-modal');
+document.getElementById('shortcutsBtn')?.addEventListener('click', () => modal.classList.add('open'));
+document.getElementById('shortcutsCloseBtn')?.addEventListener('click', () => modal.classList.remove('open'));
+modal.addEventListener('click', e => { if(e.target===modal) modal.classList.remove('open'); });
+
+// ── Keyboard shortcuts ──
+document.addEventListener('keydown', e => {
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.isContentEditable) return;
+  if (e.key === '?' || e.key === '/') { e.preventDefault(); modal.classList.toggle('open'); }
+  else if (e.key === 'Escape') modal.classList.remove('open');
+  else if (e.key === 'j' || e.key === 'ArrowDown') window.scrollBy({top:200,behavior:'smooth'});
+  else if (e.key === 'k' || e.key === 'ArrowUp') window.scrollBy({top:-200,behavior:'smooth'});
+  else if (e.key === 't') document.getElementById('txBtn')?.click();
+  else if (e.key === 'b') document.getElementById('saveBtn')?.click();
+  else if (e.key === 's') document.getElementById('shareBtn')?.click();
+});
+
+// ── Related texts ──
+fetch(`/api/related/${BOOK_SLUG}`).then(r=>r.json()).then(items => {
+  if (!items.length) return;
+  const el = document.getElementById('relatedGrid');
+  if (!el) return;
+  el.innerHTML = items.map(it => `
+    <a href="/book/${it.slug}" class="related-card">
+      <div class="related-card-img">${it.cover ? `<img src="${it.cover}" alt="" loading="lazy">` : `<div style="height:100%;background:var(--surface)"></div>`}</div>
+      <div class="related-card-body">
+        <div class="related-card-title">${it.title}</div>
+        <div class="related-card-cat">${it.category||''}</div>
+      </div>
+    </a>`).join('');
+  el.closest('.related-section').style.display = 'block';
+}).catch(()=>{});
+</script>
+<% } %>
 <script>
 // Theme toggle
 
