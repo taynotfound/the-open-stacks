@@ -34,11 +34,14 @@ function extractToc(md) {
 function mdToHtml(text) {
   // strip YAML front matter
   if (text.startsWith('---')) text = text.replace(/^---[\s\S]*?---\n?/, '');
+  // strip Twitter/X embed URLs (CORP-blocked, useless without embed JS)
+  text = text.replace(/https?:\/\/(twitter|x)\.com\/[^\s\])"]+/g, '');
   // strip Kramdown block attributes {: #id .class} and footnote defs [^1]: ...
   text = text.replace(/^\{:[^}]*\}\s*$/gm, '');
   text = text.replace(/^\[\^[^\]]+\]:.+$/gm, '');
-  // CrimethInc wiki-style images: [[url]] or [[url class:portrait]]
-  text = text.replace(/\[\[(https?:\/\/[^\]\s]+)(?:\s+[^\]]*)?\]\]/g, '![]($1)');
+  // CrimethInc [[url]] or [[url class:X caption text]] → figure with optional caption
+  text = text.replace(/\[\[(https?:\/\/[^\]\s]+)(?:\s+class:[^\s\]]+)?(?:\s+([^\]]+))?\]\]/g, (_, url, caption) =>
+    caption ? `\n\n![${caption.trim()}](${url})\n\n*${caption.trim()}*\n\n` : `![](${url})`);
   // ponytail: re-paragraph wall-of-text if no double newlines exist (scraped content)
   if (!text.includes('\n\n') && text.length > 500) {
     text = text.replace(/[ \t]{3,}([IVXLCDM]+)\. /g, '\n\n## ');
