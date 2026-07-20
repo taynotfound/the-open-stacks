@@ -90,15 +90,16 @@ document.getElementById('themeToggle').addEventListener('click',()=>{const n=doc
         <% if (book.cover) { %>
           <img src="<%= book.cover %>" alt="" loading="lazy">
         <% } else { %>
-          <div class="cover-placeholder"><span class="cover-initial"><%= (book.title||'?')[0].toUpperCase() %></span></div>
+          <div class="cover-placeholder<%= book.category==='audio'?' cover-audio':'' %>"><span class="cover-initial"><%= book.category==='audio' ? '♪' : (book.title||'?')[0].toUpperCase() %></span></div>
         <% } %>
       </div>
       <div class="book-info">
         <div class="book-title-card"><%= book.title %></div>
-        <% if (book.author) { %><div class="book-author-card"><%= book.author %></div><% } %>
+        <% if (book.author && book.author !== 'Unknown') { %><div class="book-author-card"><%= book.author %></div><% } %>
         <div class="book-badges">
-          <% if (book.category) { %><span class="badge badge-cat"><%= book.category.replace(/-/g,' ') %></span><% } %>
-          <% if (book.hasBody) { %><span class="badge badge-text">Full text</span><% } %>
+          <% if (book.category && book.category !== category) { %><span class="badge badge-cat"><%= book.category.replace(/-/g,' ') %></span><% } %>
+          <% if (book.hasBody) { %><span class="badge badge-text">full text</span><% } %>
+          <% if (book.sourceName && book.sourceName !== 'The Anarchist Library') { %><span class="badge badge-src"><%= book.sourceName %></span><% } %>
         </div>
       </div>
     </a>
