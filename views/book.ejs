@@ -236,6 +236,18 @@
 
 <%- include('_footer', { stats }) %>
 
+<!-- Share dialog -->
+<dialog id="share-dlg" onclick="if(event.target===this)this.close()">
+  <div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:1.5rem;min-width:300px;max-width:460px">
+    <p style="margin:0 0 .75rem;font-weight:600">Share</p>
+    <div style="display:flex;gap:.5rem">
+      <input id="share-url-input" readonly style="flex:1;background:var(--bg);border:1px solid var(--border);border-radius:4px;padding:.4rem .6rem;color:var(--text);font-size:.85rem">
+      <button id="share-copy-btn" class="btn-download">Copy link</button>
+    </div>
+    <button onclick="this.closest('dialog').close()" style="margin-top:.75rem;background:none;border:none;color:var(--muted);cursor:pointer;font-size:.8rem">Close</button>
+  </div>
+</dialog>
+
 <!-- Gallery lightbox -->
 <dialog id="gallery-dlg" onclick="this.close()">
   <img id="gallery-img" src="" alt="">
@@ -322,10 +334,16 @@ qCopy.addEventListener('click', () => {
 qClose.addEventListener('click', () => qBar.style.display='none');
 
 // ── Share ──
+const shareUrl = window.location.href;
 document.getElementById('shareBtn')?.addEventListener('click', () => {
-  const url = location.href;
-  if (navigator.share) { navigator.share({ title: BOOK_TITLE, url }); }
-  else { navigator.clipboard.writeText(url); document.getElementById('shareBtn').textContent='✓ Copied!'; setTimeout(()=>{document.getElementById('shareBtn').textContent='↗ Share';},2000); }
+  const dlg = document.getElementById('share-dlg');
+  document.getElementById('share-url-input').value = shareUrl;
+  dlg.showModal();
+});
+document.getElementById('share-copy-btn')?.addEventListener('click', () => {
+  navigator.clipboard.writeText(shareUrl);
+  const btn = document.getElementById('share-copy-btn');
+  btn.textContent = '✓ Copied!'; setTimeout(() => btn.textContent = 'Copy link', 1500);
 });
 
 // ── Shortcuts modal ──
