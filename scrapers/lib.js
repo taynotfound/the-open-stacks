@@ -46,8 +46,10 @@ function get(url, ua = 'OpenStacks/1.0', rd = 5) {
 
 const strip = s => {
   let t = (s || '').replace(/<!\[CDATA\[/g, '').replace(/\]\]>/g, '');
-  const dec = x => x.replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#039;/g, "'").replace(/&#(\d+);/g, (_, n) => String.fromCharCode(n)).replace(/&nbsp;/g, ' ');
-  return dec(t.replace(/<[^>]+>/g, ' ')).replace(/\s+/g, ' ').trim();
+  const dec = x => x.replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#039;/g, "'").replace(/&#x([0-9a-fA-F]+);/g, (_, n) => String.fromCodePoint(parseInt(n, 16))).replace(/&#(\d+);/g, (_, n) => String.fromCodePoint(+n)).replace(/&nbsp;/g, ' ');
+  // decode → strip → decode: feeds ship entity-encoded HTML, one pass leaves markup behind
+  t = dec(t).replace(/<[^>]+>/g, ' ');
+  return dec(t).replace(/\uFFFD+/g, '').replace(/\s+/g, ' ').trim();
 };
 
 // find index of the closing tag that matches the opening at position 0, accounting for nesting
