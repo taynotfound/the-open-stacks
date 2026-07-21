@@ -10,8 +10,22 @@ function httpsGet(url) {
   });
 }
 
+function headOk(url) {
+  return new Promise(res => {
+    https.request(url, { method: 'HEAD' }, r => res(r.statusCode === 200)).on('error', () => res(false)).end();
+  });
+}
+
 // ponytail: exported so server.js cron can call it directly with a db ref
 async function fillCovers(db) {
+  // validate + clear broken covers so they get re-fetched below
+  const broken = await db.collection('books')
+    .find({ cover: { $exists: true } }).project({ _id: 1, cover: 1 }).limit(100).toArray();
+  for (const b of broken) {
+    const ok = await headOk(b.cover).catch(() => false);
+    if (!ok) await db.collection('books').updateOne({ _id: b._id }, { $unset: { cover: '' } });
+  }
+
   const books = await db.collection('books')
     .find({ author: { $exists: true }, $or: [{ cover: { $exists: false } }, { isbn: { $exists: false } }, { publishYear: { $exists: false } }, { olKey: { $exists: false } }] })
     .project({ _id: 1, title: 1, author: 1 })
@@ -30,20 +44,19 @@ async function fillCovers(db) {
       const update = {};
 
       if (doc.cover_i) {
-        const coverUrl = `https://covers.openlibrary.org/b/id/${doc.cover_i}-XL.jpg`;
-        // validate cover — skip broken images
-        const ok = await new Promise(res => {
-          https.request(coverUrl, { method: 'HEAD' }, r => res(r.statusCode === 200)).on('error', () => res(false)).end();
-        });
-        if (ok) update.cover = coverUrl;
+        // try XL first, fall back to L
+        const xl = `https://covers.openlibrary.org/b/id/${doc.cover_i}-XL.jpg`;
+        const l  = `https://covers.openlibrary.org/b/id/${doc.cover_i}-L.jpg`;
+        if      (await headOk(xl)) update.cover = xl;
+        else if (await headOk(l))  update.cover = l;
       }
 
-      if (doc.isbn?.length) update.isbn = doc.isbn[0];
-      if (doc.first_publish_year) update.publishYear = doc.first_publish_year;
-      if (doc.publisher?.length) update.publisher = doc.publisher[0];
-      if (doc.edition_count) update.editionCount = doc.edition_count;
-      if (doc.key) update.olKey = doc.key; // e.g. /works/OL2347897W
-      if (doc.subject?.length) update.subjects = doc.subject.slice(0, 5);
+      if (doc.isbn?.length)        update.isbn        = doc.isbn[0];
+      if (doc.first_publish_year)  update.publishYear = doc.first_publish_year;
+      if (doc.publisher?.length)   update.publisher   = doc.publisher[0];
+      if (doc.edition_count)       update.editionCount = doc.edition_count;
+      if (doc.key)                 update.olKey       = doc.key;
+      if (doc.subject?.length)     update.subjects    = doc.subject.slice(0, 5);
 
       if (Object.keys(update).length) {
         await db.collection('books').updateOne({ _id: book._id }, { $set: update });
