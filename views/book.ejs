@@ -107,6 +107,7 @@
       <div class="book-actions">
         <button class="btn-save" id="saveBtn" data-slug="<%= book.slug %>" data-title="<%= book.title.replace(/"/g,'&quot;') %>">☆ Save</button>
         <button class="btn-share" id="shareBtn">↗ Share</button>
+        <% if (book.hasBody || book.path) { %><a href="/download/<%= book.slug %>.txt" class="btn-share" download>↓ .txt</a><% } %>
         <button class="btn-share" id="shortcutsBtn" title="Keyboard shortcuts">⌨ ?</button>
       </div>
       <p class="shortcuts-hint"><kbd>j</kbd>/<kbd>k</kbd> scroll · <kbd>t</kbd> translate · <kbd>b</kbd> bookmark · <kbd>?</kbd> all shortcuts</p>

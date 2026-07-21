@@ -1,5 +1,15 @@
 const express = require('express');
 const https = require('https');
+function httpsGet(url, redirects = 5) {
+  return new Promise((res, rej) => {
+    const u = new URL(url);
+    const req = https.get({ hostname: u.hostname, path: u.pathname + u.search, headers: { 'User-Agent': 'OpenStacks/1.0' }, timeout: 15000 }, r => {
+      if (r.statusCode >= 300 && r.statusCode < 400 && r.headers.location && redirects > 0)
+        return httpsGet(new URL(r.headers.location, url).href, redirects - 1).then(res).catch(rej);
+      let d = ''; r.on('data', c => d += c); r.on('end', () => res(d));
+    }).on('error', rej).on('timeout', () => { req.destroy(); rej(new Error('timeout')); });
+  });
+}
 const router = express.Router();
 
 const RAW = 'https://raw.githubusercontent.com/taynotfound/open-stacks-library/main';
@@ -295,7 +305,20 @@ async function indexHandler(req, res) {
       cache.set('sources', sources, 600);
     } catch { sources = []; }
   }
-  res.render('index', { books, total, page: parseInt(page), pages: Math.ceil(total / limit), stats, categories, langs, sources: sources || [], q: q || '', category: category || '', lang: lang || '', source: source || '', canonical: req.prettyCanonical || null, error });
+  // recent: show 8 newest on homepage only (no filters, page 1)
+  let recent = [];
+  if (db && !q && !category && !lang && !source && parseInt(page) === 1) {
+    try {
+      recent = await db.collection('books').find({ isCanonical: { $ne: false } })
+        .sort({ added: -1 }).limit(8)
+        .project({ slug:1, title:1, author:1, cover:1, sourceName:1, added:1, body:1 })
+        .toArray().then(bs => bs.map(b => {
+          if (!b.cover && b.body) { const m = b.body.match(/\[\[(https?:\/\/[^\]\s]+)|\!\[[^\]]*\]\((https?:\/\/[^)]+)\)/); if (m) b.cover = m[1] || m[2]; }
+          delete b.body; return b;
+        }));
+    } catch {}
+  }
+  res.render('index', { books, total, page: parseInt(page), pages: Math.ceil(total / limit), stats, categories, langs, sources: sources || [], q: q || '', category: category || '', lang: lang || '', source: source || '', canonical: req.prettyCanonical || null, error, recent });
 }
 
 router.get('/', indexHandler);
@@ -317,6 +340,61 @@ router.get('/reading-list', async (req, res) => {
 router.get('/about', async (req, res) => {
   const stats = await getStats(res.locals.db, res.locals.cache);
   res.render('about', { stats });
+});
+
+// Download book body as plain text
+router.get('/download/:slug.txt', async (req, res) => {
+  const { db } = res.locals;
+  if (!db) return res.status(503).send('DB unavailable');
+  const book = await db.collection('books').findOne({ slug: req.params.slug }).catch(() => null);
+  if (!book) return res.status(404).send('Not found');
+  let text = book.body || '';
+  if (!text && book.path) {
+    try {
+      text = await httpsGet(`https://raw.githubusercontent.com/taynotfound/open-stacks-library/main/${book.path}`);
+    } catch { return res.status(502).send('Could not fetch source'); }
+  }
+  if (!text) return res.status(404).send('No text available for this item');
+  res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+  res.setHeader('Content-Disposition', `attachment; filename="${req.params.slug}.txt"`);
+  res.send(text);
+});
+
+// RSS feed — 40 newest items
+router.get('/feed.xml', async (req, res) => {
+  const { db, cache } = res.locals;
+  const ck = 'rss:feed';
+  const hit = cache.get(ck);
+  if (hit) { res.setHeader('Content-Type', 'application/rss+xml'); return res.send(hit); }
+  const items = db ? await db.collection('books').find({ isCanonical: { $ne: false } })
+    .sort({ added: -1 }).limit(40)
+    .project({ slug:1, title:1, author:1, desc:1, sourceName:1, added:1, category:1, cover:1 })
+    .toArray().catch(() => []) : [];
+  const toDate = ts => ts ? new Date(typeof ts === 'number' ? ts * 1000 : ts).toUTCString() : new Date().toUTCString();
+  const esc = s => (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  const xml = `<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:media="http://search.yahoo.com/mrss/">
+<channel>
+  <title>The Open Stacks</title>
+  <link>https://theopenstacks.apolochees.me</link>
+  <description>Free radical library — anarchist, anti-fascist, and political texts</description>
+  <language>en</language>
+  <atom:link href="https://theopenstacks.apolochees.me/feed.xml" rel="self" type="application/rss+xml"/>
+${items.map(b => `  <item>
+    <title>${esc(b.title)}</title>
+    <link>https://theopenstacks.apolochees.me/book/${b.slug}</link>
+    <guid isPermaLink="true">https://theopenstacks.apolochees.me/book/${b.slug}</guid>
+    <description>${esc(b.desc||'')}</description>
+    <category>${esc(b.category||'')}</category>
+    <author>${esc(b.author||b.sourceName||'')}</author>
+    <pubDate>${toDate(b.added)}</pubDate>${b.cover ? `
+    <media:thumbnail url="${esc(b.cover)}"/>` : ''}
+  </item>`).join('\n')}
+</channel>
+</rss>`;
+  cache.set(ck, xml, 300);
+  res.setHeader('Content-Type', 'application/rss+xml');
+  res.send(xml);
 });
 
 router.get('/book/:slug', async (req, res, next) => {
