@@ -617,15 +617,3 @@ h3.footnotes-heading { font-size: 0.9rem; text-transform: uppercase; letter-spac
 .back-link { font-size: 0.78rem; color: var(--muted); display: inline-block; margin-bottom: 1rem; transition: color 0.1s; }
 .back-link:hover { color: var(--accent); }
 ::selection { background: rgba(200,57,43,0.35); }
-
-/* ---- PDF READER ---- */
-.pdf-toolbar { display: flex; align-items: center; gap: .5rem; margin-top: .5rem; }
-.pdf-btn { display: inline-flex; align-items: center; justify-content: center; width: 30px; height: 30px; border: 1px solid var(--border, #2a2624); background: var(--surface, #1b1917); color: inherit; border-radius: 4px; cursor: pointer; font-size: 15px; text-decoration: none; line-height: 1; }
-.pdf-btn:hover { border-color: var(--red, #c0392b); }
-.pdf-pageinfo { font-size: 12px; opacity: .7; min-width: 64px; text-align: center; font-variant-numeric: tabular-nums; }
-.pdf-pages { margin-top: .5rem; max-height: 80vh; overflow-y: auto; overflow-x: auto; border: 1px solid var(--border, #2a2624); border-radius: 6px; background: #0d0c0b; -webkit-overflow-scrolling: touch; }
-.pdf-page { display: flex; justify-content: center; margin: 0 auto 8px; }
-.pdf-page canvas { display: block; max-width: 100%; height: auto !important; }
-.pdf-loading { padding: 2rem 1rem; text-align: center; font-size: 13px; opacity: .7; }
-.pdf-loading a { color: var(--red, #c0392b); }
-@media (max-width: 640px) { .pdf-pages { max-height: 70vh; } }

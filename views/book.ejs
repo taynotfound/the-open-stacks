@@ -396,55 +396,6 @@ fetch(`/api/related/${BOOK_SLUG}`).then(r=>r.json()).then(items => {
   const TEXT_FMT = /DjVuTXT|OCR Search Text|Plain Text/i;
   const MIME_A = {mp3:'audio/mpeg',ogg:'audio/ogg',aac:'audio/aac',flac:'audio/flac',opus:'audio/ogg'};
   const MIME_V = {mp4:'video/mp4',ogv:'video/ogg',webm:'video/webm'};
-  async function initPdfViewer(url, fallbackUrl) {
-    const cont = document.getElementById('pdfPages');
-    const info = document.getElementById('pdfPageInfo');
-    try {
-      if (!window.pdfjsLib) {
-        await new Promise((res, rej) => { const s = document.createElement('script'); s.src = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js'; s.onload = res; s.onerror = rej; document.head.appendChild(s); });
-        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js';
-      }
-      const pdf = await pdfjsLib.getDocument({ url, withCredentials: false }).promise;
-      cont.innerHTML = '';
-      let scale = 1;
-      const dpr = Math.min(window.devicePixelRatio || 1, 2);
-      const holders = [];
-      for (let i = 1; i <= pdf.numPages; i++) {
-        const h = document.createElement('div');
-        h.className = 'pdf-page'; h.dataset.page = i;
-        cont.appendChild(h); holders.push(h);
-      }
-      info.textContent = '1 / ' + pdf.numPages;
-      async function renderPage(h) {
-        if (h.dataset.rendered === String(scale)) return;
-        h.dataset.rendered = String(scale);
-        const page = await pdf.getPage(+h.dataset.page);
-        const baseW = cont.clientWidth - 2;
-        const vp1 = page.getViewport({ scale: 1 });
-        const vp = page.getViewport({ scale: (baseW / vp1.width) * scale });
-        let cv = h.querySelector('canvas');
-        if (!cv) { cv = document.createElement('canvas'); h.appendChild(cv); }
-        cv.width = vp.width * dpr; cv.height = vp.height * dpr;
-        cv.style.width = vp.width + 'px'; cv.style.height = vp.height + 'px';
-        h.style.minHeight = vp.height + 'px';
-        const ctx = cv.getContext('2d');
-        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-        await page.render({ canvasContext: ctx, viewport: vp }).promise;
-      }
-      const io = new IntersectionObserver(es => {
-        es.forEach(e => {
-          if (e.isIntersecting) { renderPage(e.target); info.textContent = e.target.dataset.page + ' / ' + pdf.numPages; }
-        });
-      }, { root: cont, rootMargin: '600px 0px' });
-      holders.forEach(h => io.observe(h));
-      const rerender = () => { holders.forEach(h => { if (h.dataset.rendered && h.dataset.rendered !== String(scale)) delete h.dataset.rendered; }); holders.slice(0, 3).forEach(renderPage); io.disconnect(); holders.forEach(h => io.observe(h)); };
-      document.getElementById('pdfZoomIn').onclick = () => { scale = Math.min(scale + 0.25, 3); rerender(); };
-      document.getElementById('pdfZoomOut').onclick = () => { scale = Math.max(scale - 0.25, 0.5); rerender(); };
-      let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(rerender, 300); });
-    } catch (e) {
-      cont.innerHTML = '<div class="pdf-loading">Could not load PDF. <a href="' + (fallbackUrl || url) + '" target="_blank" rel="noopener">Open it directly</a>.</div>';
-    }
-  }
   fetch('/api/ia-files/<%= iaId %>').then(r=>r.json()).then(files => {
     if (!files.length) return;
     const audio = files.filter(f => AUDIO.test(f.name));
@@ -458,10 +409,7 @@ fetch(`/api/related/${BOOK_SLUG}`).then(r=>r.json()).then(items => {
     const nonPdf = rest.filter(f => !/\.pdf$/i.test(f.name));
     if (video.length) inject(`<div class="book-player"><span class="section-label">Watch</span>${video.map(f=>{const ext=f.name.split('.').pop().toLowerCase();return`<div style="margin-top:.5rem"><video controls preload="none" style="width:100%;border-radius:6px;background:#000"><source src="${f.url}" type="${MIME_V[ext]||'video/mp4'}"></video></div>`;}).join('')}</div>`);
     if (audio.length) inject(`<div class="book-player"><span class="section-label">Listen</span>${audio.map(f=>{const ext=f.name.split('.').pop().toLowerCase();return`<div style="margin-top:.5rem"><audio controls preload="none" style="width:100%"><source src="${f.url}" type="${MIME_A[ext]||'audio/mpeg'}"></audio></div>`;}).join('')}</div>`);
-    if (pdfs.length && !document.getElementById('bodyText')) {
-      inject(`<div class="book-player" id="pdfReader"><span class="section-label">Read</span><div class="pdf-toolbar"><button class="pdf-btn" id="pdfZoomOut" title="Zoom out">−</button><span class="pdf-pageinfo" id="pdfPageInfo">…</span><button class="pdf-btn" id="pdfZoomIn" title="Zoom in">+</button><a class="pdf-btn" id="pdfOpen" href="${pdfs[0].url}" target="_blank" rel="noopener" title="Open original">↗</a></div><div class="pdf-pages" id="pdfPages"><div class="pdf-loading">Loading PDF…</div></div></div>`);
-      initPdfViewer('/api/ia-pdf/<%= iaId %>/' + encodeURIComponent(pdfs[0].name), pdfs[0].url);
-    }
+    if (pdfs.length && !document.getElementById('bodyText')) inject(`<div class="book-player"><span class="section-label">Read</span><iframe src="${pdfs[0].url}" style="width:100%;height:80vh;border:none;border-radius:6px;margin-top:.5rem" loading="lazy"></iframe></div>`);
     const dlFiles = [...(document.getElementById('bodyText') ? pdfs : []), ...nonPdf];
     if (dlFiles.length) inject(`<div class="book-downloads"><span class="section-label">Files</span><div class="download-row">${dlFiles.map(f=>{const ext=(f.name.split('.').pop()||'FILE').toUpperCase();return`<a href="${f.url}" target="_blank" rel="noopener" class="btn-download" title="${f.name}">${ext}</a>`;}).join('')}</div></div>`);
   }).catch(()=>{});
