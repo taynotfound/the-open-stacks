@@ -13,7 +13,7 @@ function httpsGet(url) {
 // ponytail: exported so server.js cron can call it directly with a db ref
 async function fillCovers(db) {
   const books = await db.collection('books')
-    .find({ author: { $exists: true }, $or: [{ cover: { $exists: false } }, { isbn: { $exists: false } }, { publishYear: { $exists: false } }] })
+    .find({ author: { $exists: true }, $or: [{ cover: { $exists: false } }, { isbn: { $exists: false } }, { publishYear: { $exists: false } }, { olKey: { $exists: false } }] })
     .project({ _id: 1, title: 1, author: 1 })
     .limit(50)
     .toArray();
@@ -23,7 +23,7 @@ async function fillCovers(db) {
     try {
       const q = encodeURIComponent(book.title);
       const a = encodeURIComponent(book.author || '');
-      const raw = await httpsGet(`https://openlibrary.org/search.json?title=${q}&author=${a}&fields=cover_i,isbn,first_publish_year,publisher&limit=1`);
+      const raw = await httpsGet(`https://openlibrary.org/search.json?title=${q}&author=${a}&fields=cover_i,isbn,first_publish_year,publisher,edition_count,key,subject&limit=1`);
       const doc = JSON.parse(raw)?.docs?.[0];
       if (!doc) continue;
 
@@ -41,6 +41,9 @@ async function fillCovers(db) {
       if (doc.isbn?.length) update.isbn = doc.isbn[0];
       if (doc.first_publish_year) update.publishYear = doc.first_publish_year;
       if (doc.publisher?.length) update.publisher = doc.publisher[0];
+      if (doc.edition_count) update.editionCount = doc.edition_count;
+      if (doc.key) update.olKey = doc.key; // e.g. /works/OL2347897W
+      if (doc.subject?.length) update.subjects = doc.subject.slice(0, 5);
 
       if (Object.keys(update).length) {
         await db.collection('books').updateOne({ _id: book._id }, { $set: update });

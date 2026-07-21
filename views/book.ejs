@@ -70,6 +70,8 @@
           <% if (book.publishYear) { %><span class="meta-date">Published <%= book.publishYear %></span><% } %>
           <% if (book.publisher) { %><span class="meta-pill"><%= book.publisher %></span><% } %>
           <% if (book.isbn) { %><span class="meta-pill">ISBN <%= book.isbn %></span><% } %>
+          <% if (book.editionCount) { %><span class="meta-pill"><%= book.editionCount %> editions</span><% } %>
+          <% if (book.olKey) { %><a href="https://openlibrary.org<%= book.olKey %>" class="meta-pill meta-pill-link" target="_blank" rel="noopener">Open Library ↗</a><% } %>
           <% if (book.hasBody) { %><span class="meta-pill pill-text">Full text</span><% } %>
           <% if (book.translatedFrom && book.translatedFrom.trim()) { %><span class="meta-pill pill-trans">Translated from <%= book.translatedFrom %><% if (book.translatedType) { %> · <%= book.translatedType %><% } %></span><% } %>
         </div>
@@ -98,6 +100,7 @@
       <% } %>
 
       <% if (book.desc) { %><div class="book-desc"><%= book.desc %></div><% } %>
+      <% if (book.subjects?.length) { %><div class="book-subjects"><% book.subjects.forEach(s => { %><span class="subject-tag"><%= s %></span><% }) %></div><% } %>
       <div class="book-actions">
         <button class="btn-save" id="saveBtn" data-slug="<%= book.slug %>" data-title="<%= book.title.replace(/"/g,'&quot;') %>">☆ Save</button>
         <button class="btn-share" id="shareBtn">↗ Share</button>

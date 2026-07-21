@@ -101,7 +101,8 @@ function mdToHtml(text) {
         });
         return `<table class="toc-table"><tbody>${htmlRows.join('')}</tbody></table>`;
       }
-      return `<p>${p.replace(/\n/g,'<br>').replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>').replace(/\*(.+?)\*/g,'<em>$1</em>')}</p>`;
+      // join soft line-wraps (single \n from OCR) into spaces; let CSS wrap
+      return `<p>${p.replace(/\n/g,' ').replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>').replace(/\*(.+?)\*/g,'<em>$1</em>').trim()}</p>`;
     }).filter(Boolean).join('\n');
   }
   // strip YAML front matter
