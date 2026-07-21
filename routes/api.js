@@ -1,5 +1,42 @@
 const express = require('express');
+const https = require('https');
 const router = express.Router();
+
+function httpsGet(url) {
+  return new Promise((resolve, reject) => {
+    https.get(url, { headers: { 'User-Agent': 'OpenStacks/1.0' } }, res => {
+      let d = ''; res.on('data', c => d += c); res.on('end', () => resolve(d));
+    }).on('error', reject);
+  });
+}
+
+// ponytail: exported so server.js cron can call it directly with a db ref
+async function fillCovers(db) {
+  const books = await db.collection('books')
+    .find({ cover: { $exists: false }, author: { $exists: true } })
+    .project({ _id: 1, title: 1, author: 1 })
+    .limit(50) // ponytail: 50/run, cron repeats — avoids hammering OL
+    .toArray();
+
+  let filled = 0;
+  for (const book of books) {
+    try {
+      const q = encodeURIComponent(book.title);
+      const a = encodeURIComponent(book.author || '');
+      const raw = await httpsGet(`https://openlibrary.org/search.json?title=${q}&author=${a}&fields=cover_i&limit=1`);
+      const data = JSON.parse(raw);
+      const cover_i = data?.docs?.[0]?.cover_i;
+      if (!cover_i) continue;
+      await db.collection('books').updateOne(
+        { _id: book._id },
+        { $set: { cover: `https://covers.openlibrary.org/b/id/${cover_i}-L.jpg` } }
+      );
+      filled++;
+    } catch (_) { /* skip, try next run */ }
+  }
+  return { checked: books.length, filled };
+}
+module.exports.fillCovers = fillCovers;
 
 async function cached(cache, key, fn, ttl=300) {
   const hit = cache.get(key);
@@ -160,9 +197,12 @@ router.get('/related/:slug', async (req, res) => {
   res.json(related);
 });
 
-module.exports = router;
-
-
+router.get('/admin/fill-covers', async (req, res) => {
+  const { db } = res.locals;
+  if (!db) return res.status(503).json({ error: 'DB unavailable' });
+  const result = await fillCovers(db).catch(e => ({ error: e.message }));
+  res.json(result);
+});
 
 router.get('/debug-book/:slug', async (req, res) => {
   const { db } = res.locals;
@@ -170,3 +210,6 @@ router.get('/debug-book/:slug', async (req, res) => {
   const book = await db.collection('books').findOne({ slug: req.params.slug }, { projection: { slug: 1, hasBody: 1, bodyLen: { $strLenCP: { $ifNull: ['$body', ''] } }, path: 1 } }).catch(e => ({ error: e.message }));
   res.json(book);
 });
+
+module.exports = router;
+module.exports.fillCovers = fillCovers;

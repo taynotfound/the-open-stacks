@@ -23,6 +23,11 @@ async function connectDB() {
   console.log('Connected to MongoDB');
   // ponytail: ping every 4min to keep Atlas connection alive
   setInterval(() => db.command({ ping: 1 }).catch(() => {}), 4 * 60 * 1000);
+  // fill missing covers daily; run once on startup too
+  const { fillCovers } = require('./routes/api');
+  const runFillCovers = () => fillCovers(db).then(r => console.log('fill-covers:', r)).catch(() => {});
+  runFillCovers();
+  setInterval(runFillCovers, 24 * 60 * 60 * 1000);
 }
 
 app.set('view engine', 'ejs');
