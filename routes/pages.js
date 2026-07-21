@@ -430,9 +430,9 @@ router.get('/book/:slug', async (req, res, next) => {
 
   let body = null, toc = [];
 
-  if (book.hasBody && book.body) {
+  if (book.hasBody && book.body && book.sourceName !== 'Internet Archive') {
     body = mdToHtml(book.body);
-  } else if (book.hasBody && book.path) {
+  } else if (book.hasBody && book.path && book.sourceName !== 'Internet Archive') {
     const ck = `body:${slug}`;
     const cached = cache.get(ck);
     if (cached) { body = cached.html; toc = cached.toc; }
