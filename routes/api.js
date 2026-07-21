@@ -44,11 +44,9 @@ async function fillCovers(db) {
       const update = {};
 
       if (doc.cover_i) {
-        // try XL first, fall back to L
-        const xl = `https://covers.openlibrary.org/b/id/${doc.cover_i}-XL.jpg`;
         const l  = `https://covers.openlibrary.org/b/id/${doc.cover_i}-L.jpg`;
-        if      (await headOk(xl)) update.cover = xl;
-        else if (await headOk(l))  update.cover = l;
+        const xl = `https://covers.openlibrary.org/b/id/${doc.cover_i}-XL.jpg`;
+        if (await headOk(l)) update.cover = (await headOk(xl)) ? xl : l;
       }
 
       if (doc.isbn?.length)        update.isbn        = doc.isbn[0];
