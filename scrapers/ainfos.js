@@ -17,6 +17,14 @@ function getRaw(url) {
   });
 }
 
+function decodeEntities(s) {
+  return (s || '')
+    .replace(/&#x([0-9a-fA-F]+);/g, (_, h) => String.fromCharCode(parseInt(h, 16)))
+    .replace(/&#(\d+);/g, (_, n) => String.fromCharCode(+n))
+    .replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"').replace(/&nbsp;/g, ' ');
+}
+
 async function get(url) {
   const buf = await getRaw(url);
   return iconv.decode(buf, 'latin1');
@@ -71,7 +79,7 @@ async function scrapeLang(db, lang) {
       await new Promise(r => setTimeout(r, 400));
 
       const rawTitle = (artHtml.match(/<title>([^<]+)<\/title>/i) || [])[1] || link;
-      const title = stripHtml(rawTitle).replace(/\s*-\s*A-Infos.*/i, '').trim().slice(0, 200);
+      const title = decodeEntities(stripHtml(rawTitle).replace(/\s*-\s*A-Infos.*/i, '').trim()).slice(0, 200);
 
       const bodyHtml = extractBody(artHtml);
       const bodyText = stripHtml(bodyHtml).replace(/\n{3,}/g, '\n\n').trim();
