@@ -67,6 +67,9 @@
           <% if (book.sourceName) { %><a href="/source/<%= encodeURIComponent(book.sourceName) %>" class="meta-pill"><%= book.sourceName %></a><% } %>
           <% if (book.language && book.language !== 'en') { %><span class="meta-pill"><%= book.language %></span><% } %>
           <% if (book.added) { %><span class="meta-date"><%= new Date(book.added * 1000).getFullYear() %></span><% } %>
+          <% if (book.publishYear) { %><span class="meta-date">Published <%= book.publishYear %></span><% } %>
+          <% if (book.publisher) { %><span class="meta-pill"><%= book.publisher %></span><% } %>
+          <% if (book.isbn) { %><span class="meta-pill">ISBN <%= book.isbn %></span><% } %>
           <% if (book.hasBody) { %><span class="meta-pill pill-text">Full text</span><% } %>
           <% if (book.translatedFrom && book.translatedFrom.trim()) { %><span class="meta-pill pill-trans">Translated from <%= book.translatedFrom %><% if (book.translatedType) { %> · <%= book.translatedType %><% } %></span><% } %>
         </div>

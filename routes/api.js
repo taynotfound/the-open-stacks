@@ -23,15 +23,29 @@ async function fillCovers(db) {
     try {
       const q = encodeURIComponent(book.title);
       const a = encodeURIComponent(book.author || '');
-      const raw = await httpsGet(`https://openlibrary.org/search.json?title=${q}&author=${a}&fields=cover_i&limit=1`);
-      const data = JSON.parse(raw);
-      const cover_i = data?.docs?.[0]?.cover_i;
-      if (!cover_i) continue;
-      await db.collection('books').updateOne(
-        { _id: book._id },
-        { $set: { cover: `https://covers.openlibrary.org/b/id/${cover_i}-L.jpg` } }
-      );
-      filled++;
+      const raw = await httpsGet(`https://openlibrary.org/search.json?title=${q}&author=${a}&fields=cover_i,isbn,first_publish_year,publisher&limit=1`);
+      const doc = JSON.parse(raw)?.docs?.[0];
+      if (!doc) continue;
+
+      const update = {};
+
+      if (doc.cover_i) {
+        const coverUrl = `https://covers.openlibrary.org/b/id/${doc.cover_i}-L.jpg`;
+        // validate cover — skip broken images
+        const ok = await new Promise(res => {
+          https.request(coverUrl, { method: 'HEAD' }, r => res(r.statusCode === 200)).on('error', () => res(false)).end();
+        });
+        if (ok) update.cover = coverUrl;
+      }
+
+      if (doc.isbn?.length) update.isbn = doc.isbn[0];
+      if (doc.first_publish_year) update.publishYear = doc.first_publish_year;
+      if (doc.publisher?.length) update.publisher = doc.publisher[0];
+
+      if (Object.keys(update).length) {
+        await db.collection('books').updateOne({ _id: book._id }, { $set: update });
+        filled++;
+      }
     } catch (_) { /* skip, try next run */ }
   }
   return { checked: books.length, filled };
