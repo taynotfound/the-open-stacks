@@ -142,7 +142,7 @@
     <% if (q) { %>Results for "<strong><%= q %></strong>" — <%= total.toLocaleString() %> found
     <% } else if (source) { %><strong><%= source %></strong> — <%= total.toLocaleString() %> items
     <% } else if (category) { %><strong><%= category %></strong> — <%= total.toLocaleString() %> items
-    <% } else { %><%= total.toLocaleString() %> items in the collection<% } %>
+    <% } else { %><% } %>
   </div>
 
   <div class="book-grid">
