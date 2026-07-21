@@ -12,6 +12,7 @@ const SOURCES = [
   { name: "Labor Notes", url: "https://labornotes.org/rss.xml", slug: "ln", category: "labour" },
   { name: "Unicorn Riot", url: "https://unicornriot.ninja/feed/", slug: "ur", category: "anarchist-news" },
   { name: "Wrong Kind of Green", url: "https://www.wrongkindofgreen.org/feed/", slug: "wkg", category: "ecology" },
+  { name: "The Anarchist Library", url: "https://theanarchistlibrary.org/feed", slug: "tal", category: "anarchist-theory", hasEpub: true },
 ];
 
 function get(url, rd = 5) {
@@ -36,18 +37,20 @@ async function scrapeOne(db, src) {
   const items = [...rss.matchAll(/<item>([\s\S]*?)<\/item>/g)];
   let inserted = 0;
   for (const [, item] of items) {
-    const link = strip((item.match(/<link>([^<]+)<\/link>/) || item.match(/<guid[^>]*>([^<]+)<\/guid>/) || [])[1] || '');
+    const link = strip((item.match(/<link>([^<]+)<\/link>/) || item.match(/<guid[^>]*>([^<]+)<\/guid>/) || [])[1] || '').replace(/\?v=\d+/, '');
     const title = strip((item.match(/<title>([\s\S]*?)<\/title>/) || [])[1] || '').slice(0, 200);
-    const body = strip((item.match(/<content:encoded>([\s\S]*?)<\/content:encoded>/) || item.match(/<description>([\s\S]*?)<\/description>/) || [])[1] || '').slice(0, 80000);
+    const desc = strip((item.match(/<description>([\s\S]*?)<\/description>/) || [])[1] || '').slice(0, 300);
+    const epubUrl = src.hasEpub ? ((item.match(/<enclosure[^>]+url="([^"]+\.epub)"/) || [])[1] || '') : '';
+    const body = !src.hasEpub ? strip((item.match(/<content:encoded>([\s\S]*?)<\/content:encoded>/) || item.match(/<description>([\s\S]*?)<\/description>/) || [])[1] || '').slice(0, 80000) : '';
     const author = strip((item.match(/<dc:creator>([\s\S]*?)<\/dc:creator>/) || [])[1] || '') || src.name;
     if (!link || !title) continue;
     const slug = src.slug + '-' + slugify(title).slice(0, 68);
     if (await db.collection('books').findOne({ slug }, { projection: { _id: 1 } })) continue;
     await upsert(db, {
-      slug, title, author, desc: body.slice(0, 300), body: body || '',
+      slug, title, author, desc: desc || body.slice(0, 300), body: body || '',
       source: link, sourceName: src.name, category: src.category, language: 'eng',
       tags: [src.category, 'news'], hasBody: body.length > 50, atRisk: false,
-      cover: '', files: [], images: [], links: [], state: 'active', path: '', pageType: 'external',
+      cover: '', files: epubUrl ? [{ url: epubUrl, name: 'epub', ext: 'epub' }] : [], images: [], links: [], state: 'active', path: '', pageType: 'external',
     });
     inserted++;
   }
