@@ -160,6 +160,7 @@ code { font-family: 'Fira Code', 'Courier New', monospace; font-size: 0.85em; ba
 .book-header { margin-bottom: 1.5rem; display: flex; gap: 1.5rem; align-items: flex-start; }
 .book-header-cover { width: 120px; flex-shrink: 0; border-radius: 4px; object-fit: contain; box-shadow: 0 4px 20px rgba(0,0,0,0.5); }
 .book-header-info { flex: 1; min-width: 0; }
+@media (max-width: 480px) { .book-header { flex-direction: column; } .book-header-cover { width: 90px; } }
 .category-label { display: inline-block; font-size: 0.7rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--accent); margin-bottom: 0.8rem; }
 .book-title { font-family: var(--serif); font-size: 2.4rem; font-weight: 600; line-height: 1.2; color: var(--text); margin-bottom: 0.5rem; }
 .book-author { font-size: 1rem; color: var(--muted); font-style: italic; font-family: var(--serif); margin-bottom: 1rem; }
