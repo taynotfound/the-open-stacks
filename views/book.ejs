@@ -409,28 +409,25 @@ fetch(`/api/related/${BOOK_SLUG}`).then(r=>r.json()).then(items => {
     const nonPdf = rest.filter(f => !/\.pdf$/i.test(f.name));
     if (video.length) inject(`<div class="book-player"><span class="section-label">Watch</span>${video.map(f=>{const ext=f.name.split('.').pop().toLowerCase();return`<div style="margin-top:.5rem"><video controls preload="none" style="width:100%;border-radius:6px;background:#000"><source src="${f.url}" type="${MIME_V[ext]||'video/mp4'}"></video></div>`;}).join('')}</div>`);
     if (audio.length) inject(`<div class="book-player"><span class="section-label">Listen</span>${audio.map(f=>{const ext=f.name.split('.').pop().toLowerCase();return`<div style="margin-top:.5rem"><audio controls preload="none" style="width:100%"><source src="${f.url}" type="${MIME_A[ext]||'audio/mpeg'}"></audio></div>`;}).join('')}</div>`);
+    // ponytail: try text first, fall back to PDF if fetch fails/empty
     const bodyEl = document.getElementById('bodyText');
-    // ponytail: native browser PDF viewer via iframe — no lib needed
-    if (pdfs.length && !textFile && !bodyEl) inject(`<div class="book-player"><span class="section-label">Read</span><iframe src="${pdfs[0].url}" style="width:100%;height:80vh;border:none;border-radius:6px;margin-top:.5rem" loading="lazy"></iframe>${pdfs.length>1?'<div class="download-row" style="margin-top:.5rem">'+pdfs.slice(1).map(f=>`<a href="${f.url}" target="_blank" rel="noopener" class="btn-download">${f.name.split('.').pop().toUpperCase()}</a>`).join('')+'</div>':''}</div>`);
-    const dlFiles = [...(pdfs.length && (textFile || bodyEl) ? pdfs : []), ...nonPdf];
-    if (dlFiles.length) inject(`<div class="book-downloads"><span class="section-label">Files</span><div class="download-row">${dlFiles.map(f=>{const ext=(f.name.split('.').pop()||'FILE').toUpperCase();return`<a href="${f.url}" target="_blank" rel="noopener" class="btn-download" title="${f.name}">${ext}</a>`;}).join('')}</div></div>`);
-    // load text body if none exists
+    let textLoaded = false;
     if (textFile && !bodyEl) {
       try {
         const txt = await fetch(textFile.url).then(r=>r.text());
         const clean = txt.replace(/\f/g,' ').replace(/\r/g,'').trim();
-        if (clean.length < 100) return;
-        const divider = document.querySelector('.body-divider') || document.createElement('hr');
-        const bodyDiv = document.createElement('div');
-        bodyDiv.className = 'body-text';
-        bodyDiv.id = 'bodyText';
-        bodyDiv.style.marginTop = '1.5rem';
-        // split into paragraphs on double-newline; single newlines → space
-        const html = clean.split(/\n{2,}/).map(p=>`<p>${p.replace(/\n/g,' ').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</p>`).join('');
-        bodyDiv.innerHTML = html;
-        divider.after ? divider.after(bodyDiv) : aside.after(bodyDiv);
+        if (clean.length >= 100) {
+          const bodyDiv = document.createElement('div');
+          bodyDiv.className = 'body-text'; bodyDiv.id = 'bodyText'; bodyDiv.style.marginTop = '1.5rem';
+          bodyDiv.innerHTML = clean.split(/\n{2,}/).map(p=>`<p>${p.replace(/\n/g,' ').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</p>`).join('');
+          aside.after(bodyDiv);
+          textLoaded = true;
+        }
       } catch(e) {}
     }
+    if (pdfs.length && !textLoaded && !document.getElementById('bodyText')) inject(`<div class="book-player"><span class="section-label">Read</span><iframe src="${pdfs[0].url}" style="width:100%;height:80vh;border:none;border-radius:6px;margin-top:.5rem" loading="lazy"></iframe></div>`);
+    const dlFiles = [...(textLoaded || document.getElementById('bodyText') ? pdfs : []), ...nonPdf];
+    if (dlFiles.length) inject(`<div class="book-downloads"><span class="section-label">Files</span><div class="download-row">${dlFiles.map(f=>{const ext=(f.name.split('.').pop()||'FILE').toUpperCase();return`<a href="${f.url}" target="_blank" rel="noopener" class="btn-download" title="${f.name}">${ext}</a>`;}).join('')}</div></div>`);
   }).catch(()=>{});
 })();
 <% } %>
