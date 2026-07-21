@@ -63,7 +63,7 @@ function fetchBody(url, timeout = 10000) {
       res.on('end', () => {
         d = d.replace(/<script[\s\S]*?<\/script>/gi, '').replace(/<style[\s\S]*?<\/style>/gi, '');
         const selectors = /anarchistlibrar/i.test(url) ? ['id="main-text"', 'class="muse-format-content"']
-          : /libcom\.org/i.test(url) ? ['class="field--name-body"', 'class="node__content"']
+          : /libcom\.org|anarchistnews\.org/i.test(url) ? ['class="field--name-body field--type-text-with-summary"', 'class="field--name-body"', 'class="node__content"']
           : /crimethinc\.com/i.test(url) ? ['class="content-container"', 'class="entry-content"']
           : ['class="entry-content"', 'class="post-content"', 'class="article-content"', 'class="content"', 'itemprop="articleBody"'];
         selectors.push('<article', '<main');
@@ -79,7 +79,13 @@ function fetchBody(url, timeout = 10000) {
             .replace(/<\/li>/gi, '\n').replace(/<[^>]+>/g, '')
             .replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&nbsp;/g, ' ').replace(/&#39;/g, "'").replace(/&quot;/g, '"')
             .replace(/\n{3,}/g, '\n\n').trim();
-          if (text.length > 300) return resolve(text);
+          if (text.length > 300) {
+              // strip Drupal author/date header injected into body on anarchistnews
+              const clean = /anarchistnews\.org/i.test(url)
+                ? text.replace(/^by [^\n]+\n[\s\S]{0,60}?\d{4}[\s\S]*?\n(\n)+/, '').trim()
+                : text;
+              return resolve(clean.length > 100 ? clean : text);
+            }
         }
         resolve(null);
       });
