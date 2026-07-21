@@ -38,10 +38,7 @@ async function scrapeQuery(db, query) {
         category: 'anarchism', language: lang || 'eng',
         tags: ['anarchism', 'archive'], hasBody: false, atRisk: false,
         cover: `https://archive.org/services/img/${id}`,
-        files: [
-          { url: `https://archive.org/download/${id}/${id}.pdf`, name: 'pdf', ext: 'pdf' },
-          { url: `https://archive.org/download/${id}/${id}_abbyy.gz`, name: 'text', ext: 'txt' },
-        ],
+        files: [], // ponytail: real filenames fetched live via /api/ia-files/:id — guessing {id}.pdf 404s
         images: [], links: [], state: 'active', path: '', pageType: 'external',
       });
       inserted++; pageNew++;

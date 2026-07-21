@@ -393,19 +393,39 @@ fetch(`/api/related/${BOOK_SLUG}`).then(r=>r.json()).then(items => {
 (function() {
   const AUDIO = /\.(mp3|ogg|aac|flac|opus)$/i;
   const VIDEO = /\.(mp4|ogv|webm)$/i;
+  const TEXT_FMT = /DjVuTXT|OCR Search Text|Plain Text/i;
   const MIME_A = {mp3:'audio/mpeg',ogg:'audio/ogg',aac:'audio/aac',flac:'audio/flac',opus:'audio/ogg'};
   const MIME_V = {mp4:'video/mp4',ogv:'video/ogg',webm:'video/webm'};
-  fetch('/api/ia-files/<%= iaId %>').then(r=>r.json()).then(files => {
+  fetch('/api/ia-files/<%= iaId %>').then(r=>r.json()).then(async files => {
     if (!files.length) return;
     const audio = files.filter(f => AUDIO.test(f.name));
     const video = files.filter(f => VIDEO.test(f.name));
-    const rest  = files.filter(f => !AUDIO.test(f.name) && !VIDEO.test(f.name));
+    const textFile = files.find(f => TEXT_FMT.test(f.format||'') && /\.(txt|gz)$/.test(f.name));
+    const rest  = files.filter(f => !AUDIO.test(f.name) && !VIDEO.test(f.name) && !(TEXT_FMT.test(f.format||'')));
     const aside = document.querySelector('.book-meta-col') || document.querySelector('.book-header');
     if (!aside) return;
     const inject = (html) => { const d=document.createElement('div'); d.innerHTML=html; aside.after(d.firstChild); };
     if (video.length) inject(`<div class="book-player"><span class="section-label">Watch</span>${video.map(f=>{const ext=f.name.split('.').pop().toLowerCase();return`<div style="margin-top:.5rem"><video controls preload="none" style="width:100%;border-radius:6px;background:#000"><source src="${f.url}" type="${MIME_V[ext]||'video/mp4'}"></video></div>`;}).join('')}</div>`);
     if (audio.length) inject(`<div class="book-player"><span class="section-label">Listen</span>${audio.map(f=>{const ext=f.name.split('.').pop().toLowerCase();return`<div style="margin-top:.5rem"><audio controls preload="none" style="width:100%"><source src="${f.url}" type="${MIME_A[ext]||'audio/mpeg'}"></audio></div>`;}).join('')}</div>`);
     if (rest.length) inject(`<div class="book-downloads"><span class="section-label">Files</span><div class="download-row">${rest.map(f=>{const ext=(f.name.split('.').pop()||'FILE').toUpperCase();return`<a href="${f.url}" target="_blank" rel="noopener" class="btn-download" title="${f.name}">${ext}</a>`;}).join('')}</div></div>`);
+    // load text body if none exists
+    const bodyEl = document.getElementById('bodyText');
+    if (textFile && !bodyEl) {
+      try {
+        const txt = await fetch(textFile.url).then(r=>r.text());
+        const clean = txt.replace(/\f/g,' ').replace(/\r/g,'').trim();
+        if (clean.length < 100) return;
+        const divider = document.querySelector('.body-divider') || document.createElement('hr');
+        const bodyDiv = document.createElement('div');
+        bodyDiv.className = 'body-text';
+        bodyDiv.id = 'bodyText';
+        bodyDiv.style.marginTop = '1.5rem';
+        // split into paragraphs on double-newline; single newlines → space
+        const html = clean.split(/\n{2,}/).map(p=>`<p>${p.replace(/\n/g,' ').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</p>`).join('');
+        bodyDiv.innerHTML = html;
+        divider.after ? divider.after(bodyDiv) : aside.after(bodyDiv);
+      } catch(e) {}
+    }
   }).catch(()=>{});
 })();
 <% } %>

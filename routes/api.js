@@ -94,7 +94,7 @@ router.get('/search', async (req, res) => {
 
 // IA file list — proxy metadata API, cache 1h
 // ponytail: client fetches this on demand, no scrape-time overhead
-const SKIP_FORMATS = /Metadata|Torrent|JPEG Thumb|Item Tile|chOCR|DjVu XML|Scandata|hOCR|Page Numbers|OCR/i;
+const SKIP_FORMATS = /Metadata|Torrent|JPEG Thumb|Item Tile|chOCR|DjVu XML|Scandata|hOCR|Page Numbers JSON|OCR Page Index/i;
 router.get('/ia-files/:id', async (req, res) => {
   const { cache } = res.locals;
   const id = req.params.id.replace(/[^a-zA-Z0-9_.-]/g, '');
