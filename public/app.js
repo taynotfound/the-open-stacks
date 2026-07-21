@@ -27,6 +27,10 @@ if (input) {
   let fetchTimer, navTimer, lastQ = '';
 
   function navigate(q) {
+    if (location.pathname !== '/') {
+      location.href = q ? '/?q=' + encodeURIComponent(q) : '/';
+      return;
+    }
     const url = new URL(location.href);
     q ? url.searchParams.set('q', q) : url.searchParams.delete('q');
     url.searchParams.delete('page');

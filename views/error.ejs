@@ -12,12 +12,7 @@
   <link rel="stylesheet" href="/style.css">
 </head>
 <body>
-<nav class="nav">
-  <a href="/" class="nav-logo">
-    <img src="/logo.svg" alt="">
-    The Open Stacks
-  </a>
-</nav>
+<%- include('_nav') %>
 <main class="container" style="min-height:65vh;display:flex;align-items:center;justify-content:center;">
   <div style="text-align:center;padding:4rem 1rem;max-width:480px">
     <div style="font-size:6rem;font-weight:700;color:var(--border2);line-height:1;font-family:'Crimson Pro',serif;letter-spacing:-2px"><%= status %></div>
@@ -30,5 +25,6 @@
   </div>
 </main>
 <%- include('_footer', { stats: stats || {} }) %>
+<script src="/app.js"></script>
 </body>
 </html>

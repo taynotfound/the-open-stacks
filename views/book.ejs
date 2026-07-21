@@ -40,7 +40,7 @@
   <link rel="stylesheet" href="/style.css">
 </head>
 <body>
-<%- include('_nav', { showSearch: false }) %>
+<%- include('_nav') %>
 <div id="read-progress"></div>
 
 <% if (book && book.cover) { %>
@@ -500,5 +500,6 @@ txBtn.addEventListener('click', async () => {
 } // end if (bodyText)
 <% } %>
 </script>
+<script src="/app.js"></script>
 </body>
 </html>

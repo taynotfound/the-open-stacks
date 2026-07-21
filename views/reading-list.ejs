@@ -10,14 +10,7 @@
   <link rel="stylesheet" href="/style.css">
 </head>
 <body>
-<nav class="nav">
-  <a href="/" class="nav-logo">
-    <img src="/logo.svg" alt="">
-    The Open Stacks
-    <span class="nav-logo-sub">by Kommando 161</span>
-  </a>
-  <div class="nav-right"><%= stats.total ? stats.total.toLocaleString() : '—' %> texts</div>
-</nav>
+<%- include('_nav') %>
 
 <main class="container" style="padding-top:2rem;min-height:60vh">
   <div class="results-meta" style="margin-bottom:1.5rem">

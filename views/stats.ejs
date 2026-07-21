@@ -13,16 +13,7 @@
   <link rel="stylesheet" href="/style.css">
 </head>
 <body>
-<nav class="nav">
-  <a href="/" class="nav-logo">
-    <img src="/logo.svg" alt="The Open Stacks">
-    The Open Stacks
-    <span class="nav-logo-sub">by Kommando 161</span>
-  </a>
-  <div class="nav-right">
-    <button id="themeToggle" class="theme-toggle" title="Toggle light mode">☀</button>
-  </div>
-</nav>
+<%- include('_nav') %>
 <script>
 const _t=localStorage.theme==='light'?'light':'dark';
 document.documentElement.dataset.theme=_t;
@@ -96,5 +87,6 @@ document.getElementById('themeToggle').addEventListener('click',()=>{const n=doc
 </main>
 
 <%- include('_footer', { stats }) %>
+<script src="/app.js"></script>
 </body>
 </html>

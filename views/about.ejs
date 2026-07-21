@@ -13,7 +13,7 @@
   <link rel="stylesheet" href="/style.css">
 </head>
 <body>
-<%- include('_nav', { showSearch: false }) %>
+<%- include('_nav') %>
 <main class="book-page">
   <div class="book-page-inner">
     <a href="/" class="back-link">← Library</a>
@@ -42,5 +42,6 @@
   </div>
 </main>
 <%- include('_footer', { stats }) %>
+<script src="/app.js"></script>
 </body>
 </html>
