@@ -9,10 +9,10 @@
       : source   ? `${source} · The Open Stacks`
       : 'The Open Stacks · Free Radical Library';
     const _desc = q ? `Search results for "${q}" in the Open Stacks radical library.`
-      : category ? `Browse ${category.replace(/-/g,' ')} texts · free radical library with ${stats.total ? stats.total.toLocaleString() + ' items' : 'thousands of items'}.`
+      : category ? `Browse ${category.replace(/-/g,' ')} texts · free radical library.`
       : source   ? `All texts from ${source} · archived on The Open Stacks.`
       : `A free, open-access archive of anarchist, anti-fascist, and radical political texts. ${stats.total ? stats.total.toLocaleString() + ' items' : ''} · no account, no tracking.`;
-    const _canonical = canonical || `https://theopenstacks.apolochees.me${req.path}${Object.keys(req.query).length ? '?'+new URLSearchParams(req.query).toString() : ''}`;
+    const _canonical = canonical || 'https://theopenstacks.apolochees.me/';
   %>
   <title><%= _title %></title>
   <meta name="description" content="<%= _desc %>">
@@ -24,7 +24,6 @@
   <meta name="theme-color" content="#c8392b">
   <link rel="icon" href="/logo.svg" type="image/svg+xml">
   <link rel="canonical" href="<%= _canonical %>">
-  <% langs.forEach(l => { %><link rel="alternate" hreflang="<%= l.code %>" href="<%= _canonical + (_canonical.includes('?') ? '&' : '?') + 'lang=' + l.code %>"><% }) %>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Crimson+Pro:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://kit-pro.fontawesome.com/releases/v7.0.0/css/pro.min.css">
@@ -35,42 +34,41 @@
 <%- include('_nav', { q, showSearch: true }) %>
 
 <% if (!q && !category && !source && page <= 1) { %>
-<div class="ticker-bar">
+<div class="ticker">
   <span class="ticker-label">Newswire</span>
-  <div class="ticker-track" id="tickerTrack"><span class="ticker-loading">…</span></div>
+  <div class="ticker-scroll" id="tickerScroll"></div>
 </div>
 <script>
 fetch('/api/news').then(r=>r.json()).then(d=>{
-  const t=document.getElementById('tickerTrack');
-  if(!d||!d.length){t.innerHTML='';return;}
-  const items=d.slice(0,20);
-  t.innerHTML=items.map(it=>`<a href="${it.url}" target="_blank" rel="noopener" class="ticker-item"><span class="ticker-dot" style="color:${it.src==='anarchistnews.org'?'#c8392b':'#4a7c59'}">●</span> ${it.title}</a>`).join('<span class="ticker-sep">·</span>');
-}).catch(()=>{document.getElementById('tickerTrack').innerHTML='';});
+  if(!d||!d.length) return;
+  const el=document.getElementById('tickerScroll');
+  el.innerHTML=d.slice(0,24).map(it=>`<a href="${it.url}" target="_blank" rel="noopener" class="ticker-link">${it.title}</a>`).join('<span class="ticker-divider">·</span>');
+}).catch(()=>{});
 </script>
 <% } %>
 
 <div class="toolbar">
-  <div class="toolbar-filters">
-    <a href="/" class="pill<%= !category && !source && !lang ? ' active' : '' %>">All</a>
+  <div class="toolbar-pills" id="toolbarPills">
+    <a href="/" class="tpill<%= !category && !source && !lang ? ' on' : '' %>">All</a>
     <% categories.filter(c=>c!=='anarchism').forEach(cat => { %>
-    <a href="/category/<%= encodeURIComponent(cat) %>" class="pill<%= category===cat?' active':'' %>"><%= cat.replace(/-/g,' ') %></a>
+    <a href="/category/<%= encodeURIComponent(cat) %>" class="tpill<%= category===cat?' on':'' %>"><%= cat.replace(/-/g,' ') %></a>
     <% }) %>
-    <span class="pill-sep">·</span>
+    <span class="tpill-divider">|</span>
     <% sources.forEach(s => { %>
-    <a href="/source/<%= encodeURIComponent(s) %>" class="pill pill-src<%= source===s?' active':'' %>"><%= s %></a>
+    <a href="/source/<%= encodeURIComponent(s) %>" class="tpill tpill-src<%= source===s?' on':'' %>"><%= s %></a>
     <% }) %>
   </div>
-  <div class="toolbar-right">
+  <div class="toolbar-end">
     <% if (langs.length > 0) { %>
-    <select class="lang-select" onchange="if(this.value)location.href=this.value">
-      <option value="/?<%= new URLSearchParams(Object.assign({}, q?{q}:{}, category?{category}:{}, source?{source}:{})).toString() %>"<%= !lang?' selected':'' %>>All languages</option>
+    <select class="lang-sel" onchange="if(this.value)location.href=this.value">
+      <option value="/?<%= new URLSearchParams(Object.assign({}, q?{q}:{}, category?{category}:{}, source?{source}:{})).toString() %>"<%= !lang?' selected':'' %>>Lang</option>
       <% langs.forEach(l => { %>
       <option value="/?<%= new URLSearchParams(Object.assign({}, q?{q}:{}, category?{category}:{}, source?{source}:{}, {lang:l.code})).toString() %>"<%= lang===l.code?' selected':'' %>><%= l.label %></option>
       <% }) %>
     </select>
     <% } %>
-    <a href="/random" class="pill pill-random" title="Random text">⚄</a>
-    <% if (stats.total) { %><span class="toolbar-count" id="liveTotal"><%= stats.total.toLocaleString() %></span><% } %>
+    <a href="/random" class="tpill tpill-rand" title="Random">⚄</a>
+    <span class="toolbar-count" id="liveTotal"><%= stats.total ? stats.total.toLocaleString() : '' %></span>
   </div>
 </div>
 
@@ -80,8 +78,8 @@ fetch('/api/news').then(r=>r.json()).then(d=>{
   <% if (q || source || category) { %>
   <div class="results-meta">
     <% if (q) { %>Results for "<strong><%= q %></strong>" · <%= total.toLocaleString() %> found
-    <% } else if (source) { %><strong><%= source %></strong> · <%= total.toLocaleString() %> items
-    <% } else if (category) { %><strong><%= category %></strong> · <%= total.toLocaleString() %> items
+    <% } else if (source) { %><strong><%= source %></strong> · <%= total.toLocaleString() %>
+    <% } else if (category) { %><strong><%= category %></strong> · <%= total.toLocaleString() %>
     <% } %>
   </div>
   <% } %>
@@ -101,11 +99,6 @@ fetch('/api/news').then(r=>r.json()).then(d=>{
       <div class="book-info">
         <div class="book-title-card"><%= book.title %></div>
         <% if (book.author && book.author !== 'Unknown') { %><div class="book-author-card"><%= book.author %></div><% } %>
-        <div class="book-badges">
-          <% if (book.category && book.category !== category) { %><span class="badge badge-cat"><%= book.category.replace(/-/g,' ') %></span><% } %>
-          <% if (book.hasBody) { %><span class="badge badge-text">text</span><% } %>
-          <% if (book.sourceName && book.sourceName !== 'The Anarchist Library') { %><span class="badge badge-src"><%= book.sourceName %></span><% } %>
-        </div>
       </div>
     </a>
     <% }) %>
@@ -124,26 +117,23 @@ fetch('/api/news').then(r=>r.json()).then(d=>{
 <%- include('_footer', { stats }) %>
 <script src="/app.js"></script>
 <script>
-document.querySelectorAll('.filter-bar-wrap').forEach(wrap => {
-  const bar = wrap.querySelector('.filter-bar');
-  if (!bar) return;
-  function update() {
-    wrap.classList.toggle('can-scroll', bar.scrollWidth > bar.clientWidth + 4);
-    wrap.classList.toggle('at-end', bar.scrollLeft + bar.clientWidth >= bar.scrollWidth - 4);
-  }
-  update();
-  bar.addEventListener('scroll', update, { passive: true });
-  window.addEventListener('resize', update, { passive: true });
-  wrap.addEventListener('wheel', e => {
-    if (Math.abs(e.deltaX) < Math.abs(e.deltaY)) { e.preventDefault(); bar.scrollBy({ left: e.deltaY * 2, behavior: 'smooth' }); }
-  }, { passive: false });
-});
-// live count
 (function(){
   const el=document.getElementById('liveTotal');
   if(!el) return;
-  setInterval(()=>fetch('/api/stats').then(r=>r.json()).then(d=>{if(d.total&&d.total!==parseInt(el.textContent.replace(/,/g,'')))el.textContent=d.total.toLocaleString();}).catch(()=>{}), 15000);
+  setInterval(()=>fetch('/api/stats').then(r=>r.json()).then(d=>{
+    if(d.total&&d.total!==parseInt(el.textContent.replace(/,/g,'')))el.textContent=d.total.toLocaleString();
+  }).catch(()=>{}), 20000);
 })();
+// toolbar scroll overflow indicator
+const pills = document.getElementById('toolbarPills');
+if (pills) {
+  const update = () => pills.classList.toggle('scrollable', pills.scrollWidth > pills.clientWidth + 4);
+  update();
+  window.addEventListener('resize', update, {passive:true});
+  pills.addEventListener('wheel', e => {
+    if (Math.abs(e.deltaX) < Math.abs(e.deltaY)) { e.preventDefault(); pills.scrollBy({left: e.deltaY*2, behavior:'smooth'}); }
+  }, {passive:false});
+}
 </script>
 </body>
 </html>
