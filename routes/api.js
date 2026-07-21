@@ -13,9 +13,9 @@ function httpsGet(url) {
 // ponytail: exported so server.js cron can call it directly with a db ref
 async function fillCovers(db) {
   const books = await db.collection('books')
-    .find({ cover: { $exists: false }, author: { $exists: true } })
+    .find({ author: { $exists: true }, $or: [{ cover: { $exists: false } }, { isbn: { $exists: false } }, { publishYear: { $exists: false } }] })
     .project({ _id: 1, title: 1, author: 1 })
-    .limit(50) // ponytail: 50/run, cron repeats — avoids hammering OL
+    .limit(50)
     .toArray();
 
   let filled = 0;
