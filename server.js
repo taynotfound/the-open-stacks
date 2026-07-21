@@ -47,9 +47,15 @@ async function connectDB() {
       const errs  = lines.filter(l => /error|fail/i.test(l));
       let msg = `📚 **scrape done** in ${elapsed}s`;
       if (added) msg += ` — ${added} new items`;
-      if (errs.length) msg += `\n⚠️ errors: ${errs.slice(0,3).join('; ')}`;
-      if (err) msg += `\n🔴 exit: ${err.message}`;
-      postWebhook(msg);
+      db.collection('books').countDocuments().then(total => {
+        if (total) msg += ` · **${total.toLocaleString()}** total`;
+        if (errs.length) msg += `\n⚠️ errors: ${errs.slice(0,3).join('; ')}`;
+        if (err) msg += `\n🔴 exit: ${err.message}`;
+        postWebhook(msg);
+      }).catch(() => {
+        if (errs.length) msg += `\n⚠️ errors: ${errs.slice(0,3).join('; ')}`;
+        postWebhook(msg);
+      });
     });
   };
   runScrapers();
