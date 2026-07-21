@@ -1,55 +1,102 @@
-// A-Infos scraper — articles at ainfos.ca/{lang}/ as relative links
-// ponytail: index pages have `ainfosNNNNN.html` links; paginate via ?first=N
+// A-Infos scraper — fetches articles, decodes latin1, strips nav, pushes .md to GitHub
 const https = require('https');
+const iconv = require('iconv-lite');
 const { getDb, closeDb, slugify, upsert } = require('./lib');
+const { ghApi, ghGet } = require('../lib/github');
 
-const AGENT = { headers: { 'User-Agent': 'OpenStacks/1.0' }, rejectUnauthorized: false, timeout: 12000 };
+const AGENT = { headers: { 'User-Agent': 'OpenStacks/1.0' }, rejectUnauthorized: false, timeout: 15000 };
 
-function get(url) {
+function getRaw(url) {
   return new Promise((res, rej) => {
     const u = new URL(url);
-    https.get({ hostname: u.hostname, path: u.pathname + u.search, ...AGENT }, r => {
+    const req = https.get({ hostname: u.hostname, path: u.pathname + u.search, ...AGENT }, r => {
       if (r.statusCode >= 300 && r.statusCode < 400 && r.headers.location)
-        return get(new URL(r.headers.location, url).href).then(res).catch(rej);
-      let d = ''; r.on('data', c => d += c); r.on('end', () => res(d));
-    }).on('error', rej).on('timeout', () => rej(new Error('timeout')));
+        return getRaw(new URL(r.headers.location, url).href).then(res).catch(rej);
+      const chunks = []; r.on('data', c => chunks.push(c)); r.on('end', () => res(Buffer.concat(chunks)));
+    }).on('error', rej).on('timeout', () => { req.destroy(); rej(new Error('timeout')); });
+  });
+}
+
+async function get(url) {
+  const buf = await getRaw(url);
+  return iconv.decode(buf, 'latin1');
+}
+
+function stripHtml(s) {
+  return (s || '')
+    .replace(/<script[\s\S]*?<\/script>/gi, '')
+    .replace(/<style[\s\S]*?<\/style>/gi, '')
+    .replace(/<[^>]+>/g, '')
+    .replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"').replace(/&#x27;/g, "'").replace(/&nbsp;/g, ' ')
+    .replace(/&#x[0-9a-fA-F]+;/g, c => String.fromCharCode(parseInt(c.slice(3,-1),16)))
+    .replace(/&#(\d+);/g, (_, n) => String.fromCharCode(+n))
+    .replace(/\r\n/g, '\n').replace(/[ \t]+/g, ' ')
+    .replace(/\n{3,}/g, '\n\n').trim();
+}
+
+// Cut navigation boilerplate — A-Infos pages have a long header + footer nav
+function extractBody(html) {
+  // body lives after the <hr> that follows the article header
+  const parts = html.split(/<hr\s*\/?>/i);
+  // article body is typically the 2nd block (after the nav header)
+  if (parts.length >= 3) return parts.slice(1, -1).join('\n---\n');
+  if (parts.length === 2) return parts[1];
+  return html;
+}
+
+async function pushToGitHub(path, content) {
+  let sha;
+  try { const f = await ghGet(`contents/${path}`); sha = f.sha; } catch {}
+  await ghApi('PUT', `contents/${path}`, {
+    message: `scrape: ainfos ${path}`,
+    content: Buffer.from(content).toString('base64'),
+    ...(sha ? { sha } : {}),
   });
 }
 
 async function scrapeLang(db, lang) {
   const base = `https://www.ainfos.ca/${lang}/`;
-  let inserted = 0, page = 0, pageInserted = 0;
+  let inserted = 0, page = 0;
   while (true) {
     const url = page === 0 ? base : `${base}?first=${page * 100}`;
     let html; try { html = await get(url); } catch (e) { console.error(`[A-Infos] ${lang} p${page}: ${e.message}`); break; }
     const links = [...html.matchAll(/href="(ainfos\d+\.html)"/g)].map(m => m[1]);
     if (!links.length) break;
-    pageInserted = 0;
+    let pageInserted = 0;
     for (const link of links) {
       const slug = `ainfos-${lang}-${link.replace('.html', '')}`;
       if (await db.collection('books').findOne({ slug }, { projection: { _id: 1 } })) continue;
-      const html = await get(base + link).catch(() => null);
-      if (!html) continue;
-      await new Promise(r => setTimeout(r, 600));
-      const title = (html.match(/<title>([^<]+)<\/title>/i) || [])[1]?.replace(/\s*-\s*A-Infos.*/i, '').trim() || link;
-      // extract article body — A-Infos wraps content in <pre> or <p> tags
-      const bodyHtml = (html.match(/<pre[^>]*>([\s\S]+?)<\/pre>/i) || html.match(/<body[^>]*>([\s\S]+?)<\/body>/i) || [])[1] || '';
-      const bodyText = bodyHtml.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
-      const desc = bodyText.slice(0, 300);
+      let artHtml; try { artHtml = await get(base + link); } catch { continue; }
+      await new Promise(r => setTimeout(r, 400));
+
+      const rawTitle = (artHtml.match(/<title>([^<]+)<\/title>/i) || [])[1] || link;
+      const title = stripHtml(rawTitle).replace(/\s*-\s*A-Infos.*/i, '').trim().slice(0, 200);
+
+      const bodyHtml = extractBody(artHtml);
+      const bodyText = stripHtml(bodyHtml).replace(/\n{3,}/g, '\n\n').trim();
+      if (bodyText.length < 80) continue; // skip nav-only pages
+
+      // Push .md to GitHub library repo
+      const ghPath = `ainfos/${lang}/${link.replace('.html', '')}.md`;
+      const md = `# ${title}\n\n**Source:** ${base + link}  \n**Language:** ${lang}\n\n---\n\n${bodyText}`;
+      try { await pushToGitHub(ghPath, md); } catch (e) { console.error(`[A-Infos] github push failed: ${e.message}`); continue; }
+
       await upsert(db, {
-        slug, title: title.slice(0, 200), author: 'A-Infos',
-        desc, body: bodyText.slice(0, 100000), source: base + link, sourceName: 'A-Infos',
+        slug, title, author: 'A-Infos',
+        desc: bodyText.slice(0, 300),
+        source: base + link, sourceName: 'A-Infos',
         category: 'anarchist-news', language: lang,
-        tags: ['anarchism', 'news'], hasBody: bodyText.length > 50, atRisk: false,
-        cover: '', files: [], images: [], links: [], state: 'active', path: '', pageType: 'external',
+        tags: ['anarchism', 'news'], hasBody: true, atRisk: false,
+        cover: '', files: [], images: [], links: [], state: 'active',
+        path: ghPath, pageType: 'external', body: '',
       });
       inserted++;
       pageInserted++;
     }
     console.log(`[A-Infos] ${lang} p${page}: +${pageInserted} new`);
-    // if page returned <100 links we're at the end
     if (links.length < 100) break;
-    if (pageInserted === 0 && page > 1) { console.log(`[A-Infos] ${lang} no new items on p${page}, stopping`); break; }
+    if (pageInserted === 0 && page > 1) break;
     page++;
     await new Promise(r => setTimeout(r, 500));
   }
@@ -60,9 +107,11 @@ async function scrapeLang(db, lang) {
   const db = await getDb();
   let total = 0;
   for (const lang of ['en', 'de', 'fr', 'es', 'pt', 'it']) {
-    const n = await scrapeLang(db, lang);
-    console.log(`[A-Infos] ${lang} done: +${n}`);
-    total += n;
+    try {
+      const n = await scrapeLang(db, lang);
+      console.log(`[A-Infos] ${lang} done: +${n}`);
+      total += n;
+    } catch (e) { console.error(`[A-Infos] ${lang} fatal: ${e.message}`); }
   }
   console.log(`[A-Infos] TOTAL: +${total}`);
   await closeDb();
