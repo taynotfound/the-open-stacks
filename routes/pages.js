@@ -91,6 +91,16 @@ function mdToHtml(text) {
         const lvl = p.match(/^(#{1,4})/)[1].length;
         return `<h${lvl} class="body-h">${p.replace(/^#{1,4}\s+/,'')}</h${lvl}>`;
       }
+      // markdown table: lines starting with |
+      if (p.split('\n').filter(l => l.trim().startsWith('|')).length > 1) {
+        const rows = p.split('\n').filter(l => l.trim().startsWith('|') && !/^\|[-: |]+\|$/.test(l.trim()));
+        const htmlRows = rows.map((row, ri) => {
+          const cells = row.split('|').slice(1, -1).map(c => c.trim());
+          const tag = ri === 0 ? 'th' : 'td';
+          return `<tr>${cells.map(c => `<${tag}>${c.replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')}</${tag}>`).join('')}</tr>`;
+        });
+        return `<table class="toc-table"><tbody>${htmlRows.join('')}</tbody></table>`;
+      }
       return `<p>${p.replace(/\n/g,'<br>').replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>').replace(/\*(.+?)\*/g,'<em>$1</em>')}</p>`;
     }).filter(Boolean).join('\n');
   }
