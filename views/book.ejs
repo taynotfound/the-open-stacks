@@ -122,7 +122,7 @@
         <div class="related-grid" id="relatedGrid"></div>
       </section>
 
-      <% if (book.files && book.files.length > 0) { %>
+      <% if (book.files && book.files.length > 0 && book.sourceName !== 'Internet Archive') { %>
       <%
         const AUDIO_EXT = /\.(mp3|ogg|aac|flac|opus)$/i;
         const VIDEO_EXT = /\.(mp4|ogv|webm)$/i;

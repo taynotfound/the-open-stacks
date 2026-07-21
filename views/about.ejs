@@ -4,20 +4,16 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>About — The Open Stacks</title>
+  <meta name="description" content="About The Open Stacks — a free, open-access radical library. No accounts, no tracking.">
+  <meta name="theme-color" content="#c8392b">
+  <link rel="icon" href="/logo.svg" type="image/svg+xml">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Crimson+Pro:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://kit-pro.fontawesome.com/releases/v7.0.0/css/pro.min.css">
   <link rel="stylesheet" href="/style.css">
 </head>
 <body>
-<nav class="nav">
-  <a href="/" class="nav-logo">
-    <img src="/logo.svg" alt="">
-    The Open Stacks
-    <span class="nav-logo-sub">by Kommando 161</span>
-  </a>
-  <div class="nav-right"><%= stats.total ? stats.total.toLocaleString() : '—' %> texts</div>
-</nav>
+<%- include('_nav', { showSearch: false }) %>
 <main class="book-page">
   <div class="book-page-inner">
     <a href="/" class="back-link">← Library</a>

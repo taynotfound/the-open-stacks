@@ -420,7 +420,6 @@ router.get('/book/:slug', async (req, res, next) => {
   }
   book.translations = translations;
 
-  // ponytail: O(n) tag scan, fine for <100k, switch to Atlas Search if slow
   let related = [];
   if (book.tags?.length && db) {
     related = await db.collection('books')
@@ -432,7 +431,6 @@ router.get('/book/:slug', async (req, res, next) => {
   let body = null, toc = [];
 
   if (book.hasBody && book.body) {
-    // ponytail: body stored directly in DB (scraped items) — just use it
     body = mdToHtml(book.body);
   } else if (book.hasBody && book.path) {
     const ck = `body:${slug}`;
