@@ -310,6 +310,7 @@ if (prog) {
 const tocEl = document.getElementById('bookToc');
 const headings = [...document.querySelectorAll('.body-text h2, .body-text h3')];
 if (tocEl && headings.length > 2) {
+  headings.forEach((h, i) => { if (!h.id) h.id = 'sec-' + i; });
   tocEl.innerHTML = headings.map(h =>
     `<a href="#${h.id}" data-id="${h.id}">${h.tagName==='H3'?'&nbsp;&nbsp;':''}${h.textContent.trim()}</a>`
   ).join('');
