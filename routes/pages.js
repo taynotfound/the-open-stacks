@@ -83,7 +83,7 @@ function mdToHtml(text) {
   // fast path for large plain-text bodies — skip heavy regex pipeline
   if (text.length > 50000 && !text.startsWith('---')) {
     // handle CrimethInc [[url caption class:X]] embeds — caption may contain [text](url) links
-    text = text.replace(/\[\[(https?:\/\/\S+)\s*([\s\S]*?)\]\]/g, (_, url, rest) => {
+    text = text.replace(/\[\[(https?:\/\/[^\s\]]+)((?:[^[\]]|\[(?!\[)|\](?!\]))*)\]\]/g, (_, url, rest) => {
       const cls = (rest.match(/class:(\S+)/) || [])[1] || '';
       const caption = rest.replace(/\bclass:\S+/g, '').trim();
       if (!caption) return `<img src="${url}">`;
@@ -119,7 +119,7 @@ function mdToHtml(text) {
   text = text.replace(/^\{:[^}]*\}\s*$/gm, '');
   text = text.replace(/^\[\^[^\]]+\]:.+$/gm, '');
   // CrimethInc [[url caption class:X]] → figure with optional caption + inner links
-  text = text.replace(/\[\[(https?:\/\/\S+)\s*([\s\S]*?)\]\]/g, (_, url, rest) => {
+  text = text.replace(/\[\[(https?:\/\/[^\s\]]+)((?:[^[\]]|\[(?!\[)|\](?!\]))*)\]\]/g, (_, url, rest) => {
     const cls = (rest.match(/class:(\S+)/) || [])[1] || '';
     const caption = rest.replace(/\bclass:\S+/g, '').trim();
     if (!caption) return `<img src="${url}">`;
