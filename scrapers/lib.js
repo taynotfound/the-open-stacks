@@ -50,6 +50,20 @@ const strip = s => {
   return dec(t.replace(/<[^>]+>/g, ' ')).replace(/\s+/g, ' ').trim();
 };
 
+// find index of the closing tag that matches the opening at position 0, accounting for nesting
+function findClose(html, tag) {
+  const o = `<${tag}`, c = `</${tag}>`;
+  let depth = 1, pos = 0;
+  while (depth > 0 && pos < html.length) {
+    const oi = html.indexOf(o, pos);
+    const ci = html.indexOf(c, pos);
+    if (ci === -1) break;
+    if (oi !== -1 && oi < ci) { depth++; pos = oi + o.length; }
+    else { depth--; pos = ci + c.length; if (depth === 0) return ci; }
+  }
+  return -1;
+}
+
 // Fetch main article text from a URL — site-specific selectors, falls back to <article>/<main>
 function fetchBody(url, timeout = 10000) {
   return new Promise(resolve => {
@@ -63,7 +77,7 @@ function fetchBody(url, timeout = 10000) {
       res.on('end', () => {
         d = d.replace(/<script[\s\S]*?<\/script>/gi, '').replace(/<style[\s\S]*?<\/style>/gi, '');
         const selectors = /anarchistlibrar/i.test(url) ? ['id="main-text"', 'class="muse-format-content"']
-          : /libcom\.org|anarchistnews\.org/i.test(url) ? ['class="field--name-body field--type-text-with-summary"', 'class="field--name-body"', 'class="node__content"']
+          : /libcom\.org|anarchistnews\.org/i.test(url) ? ['field--type-text-with-summary', 'field--name-body', 'node__content']
           : /crimethinc\.com/i.test(url) ? ['class="content-container"', 'class="entry-content"']
           : ['class="entry-content"', 'class="post-content"', 'class="article-content"', 'class="content"', 'itemprop="articleBody"'];
         selectors.push('<article', '<main');
@@ -73,8 +87,10 @@ function fetchBody(url, timeout = 10000) {
           const tag = d.slice(d.lastIndexOf('<', idx) + 1, idx).trim().split(/\s/)[0];
           const start = d.indexOf('>', idx) + 1;
           let block = d.slice(start, start + 300000);
-          const ci = block.lastIndexOf(`</${tag}>`);
-          if (ci > 100) block = block.slice(0, ci);
+          const ci = findClose(block, tag);
+          // use nesting-aware close if found close enough (< 20kb), else fall back to first sibling close tag
+          const bound = (ci > 0 && ci < 20000) ? ci : block.indexOf(`</${tag}>`);
+          if (bound > 0) block = block.slice(0, bound);
           const text = block.replace(/<br\s*\/?>/gi, '\n').replace(/<\/p>/gi, '\n\n').replace(/<\/h[1-6]>/gi, '\n\n')
             .replace(/<\/li>/gi, '\n').replace(/<[^>]+>/g, '')
             .replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&nbsp;/g, ' ').replace(/&#39;/g, "'").replace(/&quot;/g, '"')
