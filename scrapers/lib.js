@@ -1,4 +1,5 @@
 // ponytail: shared upsert + slug helper for all scrapers
+const https = require('https');
 const { MongoClient } = require('mongodb');
 require('dotenv').config({ path: require('path').join(__dirname, '../.env') });
 
@@ -17,7 +18,7 @@ function slugify(s) {
   return s.toLowerCase().replace(/[^\w\s-]/g, '').replace(/\s+/g, '-').replace(/-+/g, '-').slice(0, 80);
 }
 
-// upsert by slug; returns true if inserted, false if updated
+// upsert by slug; returns true if inserted
 async function upsert(db, doc) {
   for (let i = 0; i < 3; i++) {
     try {
@@ -29,10 +30,23 @@ async function upsert(db, doc) {
       return !!r.upsertedCount;
     } catch (e) {
       if (i === 2) throw e;
-      console.error(`[upsert] retry ${i+1}: ${e.message}`);
       await new Promise(r => setTimeout(r, 2000 * (i + 1)));
     }
   }
 }
 
-module.exports = { getDb, closeDb, slugify, upsert };
+function get(url, ua = 'OpenStacks/1.0', rd = 5) {
+  return new Promise((res, rej) => {
+    const u = new URL(url);
+    const req = https.get({ hostname: u.hostname, path: u.pathname + u.search, headers: { 'User-Agent': ua }, timeout: 15000 }, r => {
+      if (r.statusCode >= 300 && r.statusCode < 400 && r.headers.location && rd > 0)
+        return get(new URL(r.headers.location, url).href, ua, rd - 1).then(res).catch(rej);
+      let d = ''; r.on('data', c => d += c); r.on('end', () => res(d));
+    }).on('error', rej).on('timeout', () => { req.destroy(); rej(new Error('timeout')); });
+  });
+}
+
+const strip = s => (s || '').replace(/<!\[CDATA\[/g, '').replace(/\]\]>/g, '').replace(/<[^>]+>/g, ' ')
+  .replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#039;/g, "'").replace(/\s+/g, ' ').trim();
+
+module.exports = { getDb, closeDb, slugify, upsert, get, strip };
