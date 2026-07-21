@@ -182,14 +182,15 @@ function mdToHtml(text) {
   const joined = out.join('\n');
   return joined
     .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-    // restore our already-generated HTML tags
-    .replace(/&lt;(\/?(blockquote|table|tbody|tr|td|h[2-4]|sup|p|br|strong|em|a|img|hr)[^&]*)&gt;/g, '<$1>')
+    // restore our already-generated HTML tags (figure/figcaption included)
+    .replace(/&lt;(\/?(blockquote|table|tbody|tr|td|h[2-4]|sup|p|br|strong|em|a|img|figure|figcaption|hr)[^&]*)&gt;/g, '<$1>')
     .replace(/&lt;(a href=)&quot;([^&]+)&quot;/g, '<a href="$2"')
+    .replace(/&lt;(img src=)&quot;([^&]+)&quot;/g, '<img src="$2"')
     .replace(/^#{4}\s+(.+)$/gm, (_, t) => `<h4>${t}</h4>`)
     .replace(/^#{3}\s+(.+)$/gm, (_, t) => `<h3 id="section-${i++}">${t}</h3>`)
     .replace(/^#{2}\s+(.+)$/gm, (_, t) => `<h2 id="section-${i++}">${t}</h2>`)
-    .replace(/^# (.+)$/gm, (_, t) => `<h1 class="book-body-title">${t}</h1>`)
-    .replace(/^---$/gm, '<hr>')
+    .replace(/^#\s*(.+)$/gm, (_, t) => `<h2 id="section-${i++}">${t}</h2>`)
+    .replace(/^(\*\*\*|---|\* \* \*)$/gm, '<hr>')
     .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
     .replace(/\*(.+?)\*/g, '<em>$1</em>')
     .replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<a href="$2" class="gallery-link"><img src="$2" alt="$1" class="body-img" loading="lazy"></a>')
