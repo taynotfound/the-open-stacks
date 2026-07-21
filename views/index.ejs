@@ -24,7 +24,6 @@
   <meta name="theme-color" content="#c8392b">
   <link rel="icon" href="/logo.svg" type="image/svg+xml">
   <link rel="canonical" href="<%= _canonical %>">
-  <link rel="alternate" hreflang="x-default" href="<%= _canonical %>">
   <% langs.forEach(l => { %><link rel="alternate" hreflang="<%= l.code %>" href="<%= _canonical + (_canonical.includes('?') ? '&' : '?') + 'lang=' + l.code %>"><% }) %>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Crimson+Pro:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
@@ -35,114 +34,57 @@
 <body>
 <%- include('_nav', { q, showSearch: true }) %>
 
-
 <% if (!q && !category && !source && page <= 1) { %>
-<div class="hero-banner">
-  <div class="hero-top">
-    <div class="hero-logo">
-      <img src="/logo.svg" alt="">
-      <div>
-        <h1 class="hero-title">The Open Stacks</h1>
-        <p class="hero-tagline">host what they'd erase</p>
-      </div>
-    </div>
-    <div class="hero-stats">
-      <div class="hstat">
-        <span class="hstat-n" id="liveTotal" data-count="<%= stats.total || 0 %>"><%= stats.total ? stats.total.toLocaleString() : '—' %></span>
-        <span class="hstat-l">texts <span id="liveArrow" class="live-arrow"></span></span>
-      </div>
-      <div class="hstat-sep"></div>
-      <div class="hstat"><span class="hstat-n" data-count="<%= stats.sources || 0 %>"><%= stats.sources || '—' %></span><span class="hstat-l">sources</span></div>
-      <div class="hstat-sep"></div>
-      <div class="hstat"><span class="hstat-n">free</span><span class="hstat-l">always</span></div>
-    </div>
-  </div>
-  <p class="hero-creed-short">A community-run radical archive. No account. No tracking. <strong>Read it. Share it. Organize.</strong></p>
+<div class="ticker-bar">
+  <span class="ticker-label">Newswire</span>
+  <div class="ticker-track" id="tickerTrack"><span class="ticker-loading">…</span></div>
 </div>
-
-<section class="newswire-section">
-  <div class="newswire-inner container">
-    <div class="newswire-hd">
-      <span class="newswire-label">Newswire</span>
-      <a href="https://anarchistnews.org" target="_blank" rel="noopener" class="newswire-src">anarchistnews.org ↗</a>
-      <a href="https://de.indymedia.org/newswire" target="_blank" rel="noopener" class="newswire-src">de.indymedia.org ↗</a>
-    </div>
-    <div class="newswire-cards" id="newswireFeed"><span class="newswire-loading">Loading…</span></div>
-    <div class="newswire-dots" id="newswireDots"></div>
-  </div>
-</section>
 <script>
-(function(){
-  const PAGE=3;
-  let items=[], cur=0, timer=null;
-  const el=document.getElementById('newswireFeed');
-  const dots=document.getElementById('newswireDots');
-
-  function srcColor(src){ return src==='anarchistnews.org' ? '#c8392b' : '#4a7c59'; }
-
-  function render(){
-    const slice=items.slice(cur, cur+PAGE);
-    el.innerHTML=slice.map(it=>`
-      <a href="${it.url}" target="_blank" rel="noopener" class="nw-card">
-        <div class="nw-card-src" style="background:${srcColor(it.src)}">${it.src}</div>
-        <div class="nw-card-title">${it.lang&&it.lang!=='en'?`<span class="nw-lang">${it.lang}</span> `:''}${it.title}</div>
-      </a>`).join('');
-    // dots
-    const pages=Math.ceil(items.length/PAGE);
-    dots.innerHTML=Array.from({length:pages},(_,i)=>
-      `<button class="nw-dot${i===Math.floor(cur/PAGE)?' active':''}" onclick="nwGo(${i*PAGE})"></button>`).join('');
-  }
-
-  window.nwGo=function(idx){ cur=idx; render(); resetTimer(); };
-
-  function next(){ cur=(cur+PAGE)%items.length; if(cur+PAGE>items.length) cur=0; render(); }
-  function resetTimer(){ clearInterval(timer); timer=setInterval(next,5000); }
-
-  fetch('/api/news').then(r=>r.json()).then(d=>{
-    if(!d.length){el.innerHTML='<span class="newswire-empty">—</span>';return;}
-    items=d; render(); resetTimer();
-  }).catch(()=>{el.innerHTML='';});
-})();
+fetch('/api/news').then(r=>r.json()).then(d=>{
+  const t=document.getElementById('tickerTrack');
+  if(!d||!d.length){t.innerHTML='';return;}
+  const items=d.slice(0,20);
+  t.innerHTML=items.map(it=>`<a href="${it.url}" target="_blank" rel="noopener" class="ticker-item"><span class="ticker-dot" style="color:${it.src==='anarchistnews.org'?'#c8392b':'#4a7c59'}">●</span> ${it.title}</a>`).join('<span class="ticker-sep">·</span>');
+}).catch(()=>{document.getElementById('tickerTrack').innerHTML='';});
 </script>
 <% } %>
 
-<div class="filter-bar-wrap">
-<div class="filter-bar">
-  <a href="/" class="pill<%= !category && !source && !lang ? ' active' : '' %>">All</a>
-  <span class="pill-sep">·</span>
-  <% categories.filter(c=>c!=='anarchism').forEach(cat => { %>
-    <a href="/category/<%= encodeURIComponent(cat) %>"
-       class="pill<%= category === cat ? ' active' : '' %>"><%= cat.replace(/-/g,' ') %></a>
-  <% }) %>
-  <span class="pill-sep">·</span>
-  <a href="/random" class="pill pill-random">⚄</a>
-</div>
-</div>
-<div class="filter-bar-wrap filter-bar-row2">
-<div class="filter-bar filter-bar-secondary">
-  <% sources.forEach(s => { %>
-  <a href="/source/<%= encodeURIComponent(s) %>" class="pill pill-src<%= source === s ? ' active' : '' %>"><%= s %></a>
-  <% }) %>
-  <% if (langs.length > 0) { %>
-  <span class="pill-sep">|</span>
-  <a href="/?<%= new URLSearchParams(Object.assign({}, q?{q}:{}, category?{category}:{}, source?{source}:{})).toString() %>" class="pill pill-sm<%= !lang ? ' active' : '' %>">all lang</a>
-  <% langs.forEach(l => { %>
-  <a href="/?<%= new URLSearchParams(Object.assign({}, q?{q}:{}, category?{category}:{}, source?{source}:{}, {lang:l.code})).toString() %>"
-     class="pill pill-sm<%= lang===l.code ? ' active' : '' %>"><%= l.label %></a>
-  <% }) %>
-  <% } %>
-</div>
+<div class="toolbar">
+  <div class="toolbar-filters">
+    <a href="/" class="pill<%= !category && !source && !lang ? ' active' : '' %>">All</a>
+    <% categories.filter(c=>c!=='anarchism').forEach(cat => { %>
+    <a href="/category/<%= encodeURIComponent(cat) %>" class="pill<%= category===cat?' active':'' %>"><%= cat.replace(/-/g,' ') %></a>
+    <% }) %>
+    <span class="pill-sep">·</span>
+    <% sources.forEach(s => { %>
+    <a href="/source/<%= encodeURIComponent(s) %>" class="pill pill-src<%= source===s?' active':'' %>"><%= s %></a>
+    <% }) %>
+  </div>
+  <div class="toolbar-right">
+    <% if (langs.length > 0) { %>
+    <select class="lang-select" onchange="if(this.value)location.href=this.value">
+      <option value="/?<%= new URLSearchParams(Object.assign({}, q?{q}:{}, category?{category}:{}, source?{source}:{})).toString() %>"<%= !lang?' selected':'' %>>All languages</option>
+      <% langs.forEach(l => { %>
+      <option value="/?<%= new URLSearchParams(Object.assign({}, q?{q}:{}, category?{category}:{}, source?{source}:{}, {lang:l.code})).toString() %>"<%= lang===l.code?' selected':'' %>><%= l.label %></option>
+      <% }) %>
+    </select>
+    <% } %>
+    <a href="/random" class="pill pill-random" title="Random text">⚄</a>
+    <% if (stats.total) { %><span class="toolbar-count" id="liveTotal"><%= stats.total.toLocaleString() %></span><% } %>
+  </div>
 </div>
 
-<% if (error) { %><div class="error-banner" style="margin:1rem 1.5rem"><%= error %></div><% } %>
+<% if (error) { %><div class="error-banner" style="margin:0.5rem 1rem"><%= error %></div><% } %>
 
 <main class="container">
+  <% if (q || source || category) { %>
   <div class="results-meta">
     <% if (q) { %>Results for "<strong><%= q %></strong>" · <%= total.toLocaleString() %> found
     <% } else if (source) { %><strong><%= source %></strong> · <%= total.toLocaleString() %> items
     <% } else if (category) { %><strong><%= category %></strong> · <%= total.toLocaleString() %> items
-    <% } else { %><% } %>
+    <% } %>
   </div>
+  <% } %>
 
   <div class="book-grid">
     <% books.forEach(book => { %>
@@ -154,16 +96,15 @@
           <% const _ci = (book.title||'?').split('').reduce((a,c)=>a+c.charCodeAt(0),0) % 8; %>
           <div class="cover-placeholder cp-<%= _ci %>"><span class="cover-initial"><%= (book.title||'?')[0].toUpperCase() %></span></div>
         <% } %>
+        <% if (book.language && book.language !== 'eng' && book.language !== 'en') { %><span class="cover-lang"><%= book.language.toUpperCase() %></span><% } %>
       </div>
       <div class="book-info">
         <div class="book-title-card"><%= book.title %></div>
         <% if (book.author && book.author !== 'Unknown') { %><div class="book-author-card"><%= book.author %></div><% } %>
-        <% if (book._readMin > 1) { %><div class="book-readtime"><%= book._readMin %> min read</div><% } %>
         <div class="book-badges">
           <% if (book.category && book.category !== category) { %><span class="badge badge-cat"><%= book.category.replace(/-/g,' ') %></span><% } %>
-          <% if (book.hasBody) { %><span class="badge badge-text">full text</span><% } %>
+          <% if (book.hasBody) { %><span class="badge badge-text">text</span><% } %>
           <% if (book.sourceName && book.sourceName !== 'The Anarchist Library') { %><span class="badge badge-src"><%= book.sourceName %></span><% } %>
-          <% if (book.language && book.language !== 'eng' && book.language !== 'en') { %><span class="badge badge-lang"><%= book.language.toUpperCase() %></span><% } %>
         </div>
       </div>
     </a>
@@ -183,51 +124,26 @@
 <%- include('_footer', { stats }) %>
 <script src="/app.js"></script>
 <script>
-// live count + growth arrow
-(function(){
-  const el=document.getElementById('liveTotal');
-  const arrow=document.getElementById('liveArrow');
-  if(!el) return;
-  const SK='tos_baseline_total';
-  let baseline=parseInt(localStorage.getItem(SK)||'0');
-  function update(){
-    fetch('/api/stats').then(r=>r.json()).then(d=>{
-      const n=d.total||0;
-      const prev=parseInt(el.dataset.from||el.textContent.replace(/,/g,'')||'0');
-      if(el && n!==prev) countUp(el, n);
-      if(!baseline){ baseline=n; localStorage.setItem(SK,n); }
-      if(arrow && n>baseline){
-        const pct=Math.round((n-baseline)/baseline*100);
-        arrow.textContent=pct>0?` ↑${pct}%`:'';
-        arrow.className='live-arrow up';
-      }
-    }).catch(()=>{});
-  }
-  update();
-  setInterval(update, 15000);
-})();
-</script>
-<script>
 document.querySelectorAll('.filter-bar-wrap').forEach(wrap => {
   const bar = wrap.querySelector('.filter-bar');
   if (!bar) return;
   function update() {
-    const canScroll = bar.scrollWidth > bar.clientWidth + 4;
-    const atEnd = bar.scrollLeft + bar.clientWidth >= bar.scrollWidth - 4;
-    wrap.classList.toggle('can-scroll', canScroll);
-    wrap.classList.toggle('at-end', atEnd);
+    wrap.classList.toggle('can-scroll', bar.scrollWidth > bar.clientWidth + 4);
+    wrap.classList.toggle('at-end', bar.scrollLeft + bar.clientWidth >= bar.scrollWidth - 4);
   }
   update();
   bar.addEventListener('scroll', update, { passive: true });
   window.addEventListener('resize', update, { passive: true });
-  // scroll on hover with mouse wheel redirect
   wrap.addEventListener('wheel', e => {
-    if (Math.abs(e.deltaX) < Math.abs(e.deltaY)) {
-      e.preventDefault();
-      bar.scrollBy({ left: e.deltaY * 2, behavior: 'smooth' });
-    }
+    if (Math.abs(e.deltaX) < Math.abs(e.deltaY)) { e.preventDefault(); bar.scrollBy({ left: e.deltaY * 2, behavior: 'smooth' }); }
   }, { passive: false });
 });
+// live count
+(function(){
+  const el=document.getElementById('liveTotal');
+  if(!el) return;
+  setInterval(()=>fetch('/api/stats').then(r=>r.json()).then(d=>{if(d.total&&d.total!==parseInt(el.textContent.replace(/,/g,'')))el.textContent=d.total.toLocaleString();}).catch(()=>{}), 15000);
+})();
 </script>
 </body>
 </html>
