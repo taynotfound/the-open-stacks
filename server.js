@@ -1,3 +1,4 @@
+const https = require('https');
 const express = require('express');
 const { MongoClient } = require('mongodb');
 const NodeCache = require('node-cache');
@@ -30,9 +31,28 @@ async function connectDB() {
   setInterval(_fc, 15 * 60 * 1000); // ponytail: 15min, dial back once backfill done
   // run scrapers daily
   const { execFile } = require('child_process');
-  const runScrapers = () => execFile('node', ['scrapers/run_all.js'], { cwd: __dirname }, (e,o,err) => console.log('scrapers:', o||err));
+  const WEBHOOK = 'https://discord.com/api/webhooks/1527697124471476315/cRRtYP7XXrcD0BOeLI3ZclDIb0psPimSyeLQoJSAyXYkQ4qjZLBWQDDMuJtDdcVh5rt6';
+  function postWebhook(content) {
+    const body = JSON.stringify({ username: 'open-stacks scraper', content });
+    const u = new URL(WEBHOOK);
+    https.request({ hostname: u.hostname, path: u.pathname + u.search, method: 'POST', headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(body) } }, r => r.resume()).on('error', ()=>{}).end(body);
+  }
+  const runScrapers = () => {
+    const t = Date.now();
+    execFile('node', ['scrapers/run_all.js'], { cwd: __dirname, timeout: 5 * 60 * 1000 }, (err, stdout, stderr) => {
+      const elapsed = ((Date.now() - t) / 1000).toFixed(1);
+      const lines = (stdout + stderr).split('\n').filter(Boolean);
+      const added = lines.filter(l => /insert|new|added/i.test(l)).length;
+      const errs  = lines.filter(l => /error|fail/i.test(l));
+      let msg = `📚 **scrape done** in ${elapsed}s`;
+      if (added) msg += ` — ${added} new items`;
+      if (errs.length) msg += `\n⚠️ errors: ${errs.slice(0,3).join('; ')}`;
+      if (err) msg += `\n🔴 exit: ${err.message}`;
+      postWebhook(msg);
+    });
+  };
   runScrapers();
-  setInterval(runScrapers, 24 * 60 * 60 * 1000);
+  setInterval(runScrapers, 20 * 60 * 1000);
 }
 
 app.set('view engine', 'ejs');
