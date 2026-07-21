@@ -396,7 +396,7 @@ fetch(`/api/related/${BOOK_SLUG}`).then(r=>r.json()).then(items => {
   const TEXT_FMT = /DjVuTXT|OCR Search Text|Plain Text/i;
   const MIME_A = {mp3:'audio/mpeg',ogg:'audio/ogg',aac:'audio/aac',flac:'audio/flac',opus:'audio/ogg'};
   const MIME_V = {mp4:'video/mp4',ogv:'video/ogg',webm:'video/webm'};
-  fetch('/api/ia-files/<%= iaId %>').then(r=>r.json()).then(async files => {
+  fetch('/api/ia-files/<%= iaId %>').then(r=>r.json()).then(files => {
     if (!files.length) return;
     const audio = files.filter(f => AUDIO.test(f.name));
     const video = files.filter(f => VIDEO.test(f.name));
@@ -409,24 +409,8 @@ fetch(`/api/related/${BOOK_SLUG}`).then(r=>r.json()).then(items => {
     const nonPdf = rest.filter(f => !/\.pdf$/i.test(f.name));
     if (video.length) inject(`<div class="book-player"><span class="section-label">Watch</span>${video.map(f=>{const ext=f.name.split('.').pop().toLowerCase();return`<div style="margin-top:.5rem"><video controls preload="none" style="width:100%;border-radius:6px;background:#000"><source src="${f.url}" type="${MIME_V[ext]||'video/mp4'}"></video></div>`;}).join('')}</div>`);
     if (audio.length) inject(`<div class="book-player"><span class="section-label">Listen</span>${audio.map(f=>{const ext=f.name.split('.').pop().toLowerCase();return`<div style="margin-top:.5rem"><audio controls preload="none" style="width:100%"><source src="${f.url}" type="${MIME_A[ext]||'audio/mpeg'}"></audio></div>`;}).join('')}</div>`);
-    // ponytail: try text first, fall back to PDF if fetch fails/empty
-    const bodyEl = document.getElementById('bodyText');
-    let textLoaded = false;
-    if (textFile && !bodyEl) {
-      try {
-        const txt = await fetch(textFile.url).then(r=>r.text());
-        const clean = txt.replace(/\f/g,' ').replace(/\r/g,'').trim();
-        if (clean.length >= 100) {
-          const bodyDiv = document.createElement('div');
-          bodyDiv.className = 'body-text'; bodyDiv.id = 'bodyText'; bodyDiv.style.marginTop = '1.5rem';
-          bodyDiv.innerHTML = clean.split(/\n{2,}/).map(p=>`<p>${p.replace(/\n/g,' ').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</p>`).join('');
-          aside.after(bodyDiv);
-          textLoaded = true;
-        }
-      } catch(e) {}
-    }
-    if (pdfs.length && !textLoaded && !document.getElementById('bodyText')) inject(`<div class="book-player"><span class="section-label">Read</span><iframe src="${pdfs[0].url}" style="width:100%;height:80vh;border:none;border-radius:6px;margin-top:.5rem" loading="lazy"></iframe></div>`);
-    const dlFiles = [...(textLoaded || document.getElementById('bodyText') ? pdfs : []), ...nonPdf];
+    if (pdfs.length && !document.getElementById('bodyText')) inject(`<div class="book-player"><span class="section-label">Read</span><iframe src="${pdfs[0].url}" style="width:100%;height:80vh;border:none;border-radius:6px;margin-top:.5rem" loading="lazy"></iframe></div>`);
+    const dlFiles = [...(document.getElementById('bodyText') ? pdfs : []), ...nonPdf];
     if (dlFiles.length) inject(`<div class="book-downloads"><span class="section-label">Files</span><div class="download-row">${dlFiles.map(f=>{const ext=(f.name.split('.').pop()||'FILE').toUpperCase();return`<a href="${f.url}" target="_blank" rel="noopener" class="btn-download" title="${f.name}">${ext}</a>`;}).join('')}</div></div>`);
   }).catch(()=>{});
 })();
