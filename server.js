@@ -28,6 +28,11 @@ async function connectDB() {
   const _fc = () => fillCovers(db).then(r => console.log('fill-covers:', r)).catch(() => {});
   _fc();
   setInterval(_fc, 15 * 60 * 1000); // ponytail: 15min, dial back once backfill done
+  // run scrapers daily
+  const { execFile } = require('child_process');
+  const runScrapers = () => execFile('node', ['scrapers/run_all.js'], { cwd: __dirname }, (e,o,err) => console.log('scrapers:', o||err));
+  runScrapers();
+  setInterval(runScrapers, 24 * 60 * 60 * 1000);
 }
 
 app.set('view engine', 'ejs');

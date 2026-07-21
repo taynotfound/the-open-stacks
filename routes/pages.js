@@ -82,9 +82,15 @@ function mdToHtml(text) {
   text = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
   // fast path for large plain-text bodies — skip heavy regex pipeline
   if (text.length > 50000 && !text.startsWith('---')) {
-    // handle CrimethInc [[url caption]] embeds
-    text = text.replace(/\[\[(https?:\/\/[^\]\s]+)(?:\s+class:[^\s\]]+)?(?:\s+([^\]]+))?\]\]/g, (_, url, caption) =>
-      caption ? `\n\n![${caption.trim()}](${url})\n\n` : `![](${url})`);
+    // handle CrimethInc [[url caption class:X]] embeds — caption may contain [text](url) links
+    text = text.replace(/\[\[(https?:\/\/\S+)\s*([\s\S]*?)\]\]/g, (_, url, rest) => {
+      const cls = (rest.match(/class:(\S+)/) || [])[1] || '';
+      const caption = rest.replace(/\bclass:\S+/g, '').trim();
+      if (!caption) return `<img src="${url}">`;
+      const captionHtml = caption.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2">$1</a>');
+      const altText = caption.replace(/\[([^\]]+)\]\([^)]+\)/g, '$1').replace(/"/g, '');
+      return `<figure${cls ? ` class="${cls}"` : ''}><img src="${url}" alt="${altText}"><figcaption>${captionHtml}</figcaption></figure>`;
+    });
     return text.split(/\n\n+/).map(p => {
       p = p.trim(); if (!p) return '';
       if (/^#{1,4}\s/.test(p)) {
@@ -112,9 +118,15 @@ function mdToHtml(text) {
   // strip Kramdown block attributes {: #id .class} and footnote defs [^1]: ...
   text = text.replace(/^\{:[^}]*\}\s*$/gm, '');
   text = text.replace(/^\[\^[^\]]+\]:.+$/gm, '');
-  // CrimethInc [[url]] or [[url class:X caption text]] → figure with optional caption
-  text = text.replace(/\[\[(https?:\/\/[^\]\s]+)(?:\s+class:[^\s\]]+)?(?:\s+([^\]]+))?\]\]/g, (_, url, caption) =>
-    caption ? `\n\n![${caption.trim()}](${url})\n\n*${caption.trim()}*\n\n` : `![](${url})`);
+  // CrimethInc [[url caption class:X]] → figure with optional caption + inner links
+  text = text.replace(/\[\[(https?:\/\/\S+)\s*([\s\S]*?)\]\]/g, (_, url, rest) => {
+    const cls = (rest.match(/class:(\S+)/) || [])[1] || '';
+    const caption = rest.replace(/\bclass:\S+/g, '').trim();
+    if (!caption) return `<img src="${url}">`;
+    const captionHtml = caption.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2">$1</a>');
+    const altText = caption.replace(/\[([^\]]+)\]\([^)]+\)/g, '$1').replace(/"/g, '');
+    return `<figure${cls ? ` class="${cls}"` : ''}><img src="${url}" alt="${altText}"><figcaption>${captionHtml}</figcaption></figure>`;
+  });
   // promote single newlines to double — do this first so \n\n check below is accurate
   if (text.includes('\n') && !text.includes('\n\n')) {
     text = text.replace(/\n/g, '\n\n');
