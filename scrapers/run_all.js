@@ -2,7 +2,7 @@
 // run all scrapers: node scrapers/run_all.js [--all]
 const { execFileSync } = require('child_process');
 const args = process.argv.slice(2);
-const scrapers = ['ainfos.js', 'spunk.js', 'anarchistnews.js', 'crimethinc.js', 'libcom_rss.js', 'itsgoingdown.js', 'subversionpress.js', 'rss_sources.js'];
+const scrapers = ['spunk.js', 'anarchistnews.js', 'crimethinc.js', 'libcom_rss.js', 'itsgoingdown.js', 'subversionpress.js', 'rss_sources.js'];
 for (const s of scrapers) {
   console.log(`\n=== ${s} ===`);
   try {
