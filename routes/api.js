@@ -113,6 +113,26 @@ router.get('/ia-files/:id', async (req, res) => {
   } catch { res.json([]); }
 });
 
+// PDF proxy — archive.org sends no CORS headers, so our PDF.js reader streams through us.
+// Supports Range so pdf.js can fetch chunks; follows IA's redirect to the node server.
+const httpsLib = require('https');
+router.get('/ia-pdf/:id/:name', (req, res) => {
+  const id = req.params.id.replace(/[^a-zA-Z0-9_.-]/g, '');
+  const name = req.params.name;
+  if (!/\.pdf$/i.test(name)) return res.status(400).end();
+  const fetchIt = (url, hops) => {
+    if (hops > 5) return res.status(502).end();
+    httpsLib.get(url, { headers: { ...(req.headers.range ? { Range: req.headers.range } : {}), 'User-Agent': 'open-stacks/1.0' } }, up => {
+      if (up.statusCode >= 300 && up.statusCode < 400 && up.headers.location) { up.resume(); return fetchIt(new URL(up.headers.location, url).href, hops + 1); }
+      res.status(up.statusCode);
+      ['content-type', 'content-length', 'content-range', 'accept-ranges'].forEach(h => { if (up.headers[h]) res.setHeader(h, up.headers[h]); });
+      res.setHeader('Cache-Control', 'public, max-age=86400');
+      up.pipe(res);
+    }).on('error', () => { if (!res.headersSent) res.status(502).end(); });
+  };
+  fetchIt(`https://archive.org/download/${id}/${encodeURIComponent(name)}`, 0);
+});
+
 router.get('/book/:slug', async (req, res) => {
   const { db, cache } = res.locals;
   if (!db) return res.status(503).json({ error: 'DB unavailable' });
