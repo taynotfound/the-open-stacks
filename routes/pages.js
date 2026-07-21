@@ -220,8 +220,12 @@ function mdToHtml(text) {
     .join('\n');
 }
 
-const LANG_NAMES = {eng:'English',deu:'Deutsch',fra:'Français',spa:'Español',rus:'Русский',cmn:'中文',ara:'Arabic',por:'Português',ita:'Italiano',nld:'Nederlands',pol:'Polski',swe:'Svenska',tur:'Türkçe',jpn:'日本語',fas:'فارسی',ell:'Ελληνικά',bul:'Български',ces:'Čeština',ind:'Bahasa Indonesia',ukr:'Українська',kat:'ქართული',hye:'Հայերեն',ben:'Bengali',bos:'Bosnian',ckb:'Kurdish (Sorani)',hau:'Hausa',hun:'Hungarian',ilo:'Ilocano',kor:'한국어',mad:'Madurese',plt:'Malagasy',qug:'Quechua',ron:'Română',srp:'Serbian',sun:'Sundanese',tgl:'Filipino',tha:'ภาษาไทย',vie:'Tiếng Việt',zlm:'Malay'};
-const LANG_NORM = {en:'eng',de:'deu',fr:'fra',es:'spa',ru:'rus',zh:'cmn',ar:'ara',pt:'por',it:'ita',nl:'nld',pl:'pol',sv:'swe',tr:'tur',ja:'jpn',fa:'fas',el:'ell',bg:'bul',cs:'ces',id:'ind',uk:'ukr',ka:'kat',hy:'hye',EN:'eng',DE:'deu',FR:'fra',ES:'spa',IT:'ita',PL:'pol',AR:'ara',ARB:'ara',BEN:'ben',BOS:'bos',CKB:'ckb',HAU:'hau',HUN:'hun',ILO:'ilo',KOR:'kor',MAD:'mad',PES:'fas',PLT:'plt',QUG:'qug',RON:'ron',SRP:'srp',SUN:'sun',TGL:'tgl',THA:'tha',VIE:'vie',ZLM:'zlm'};
+const LANG_NAMES = {eng:'English',deu:'Deutsch',fra:'Français',spa:'Español',rus:'Русский',cmn:'中文',ara:'Arabic',por:'Português',ita:'Italiano',nld:'Nederlands',pol:'Polski',swe:'Svenska',tur:'Türkçe',jpn:'日本語',fas:'فارسی',ell:'Ελληνικά',bul:'Български',ces:'Čeština',ind:'Bahasa Indonesia',ukr:'Українська',kat:'ქართული',hye:'Հայերեն',ben:'Bengali',bos:'Bosnian',ckb:'Kurdish (Sorani)',hau:'Hausa',hun:'Hungarian',ilo:'Ilocano',kor:'한국어',mad:'Madurese',plt:'Malagasy',qug:'Quechua',ron:'Română',srp:'Serbian',sun:'Sundanese',tgl:'Filipino',tha:'ภาษาไทย',vie:'Tiếng Việt',zlm:'Malay',cat:'Català',glg:'Galego',eus:'Euskara'};
+const LANG_NORM = {en:'eng',de:'deu',fr:'fra',es:'spa',ru:'rus',zh:'cmn',ar:'ara',pt:'por',it:'ita',nl:'nld',pl:'pol',sv:'swe',tr:'tur',ja:'jpn',fa:'fas',el:'ell',bg:'bul',cs:'ces',id:'ind',uk:'ukr',ka:'kat',hy:'hye',EN:'eng',DE:'deu',FR:'fra',ES:'spa',IT:'ita',PL:'pol',AR:'ara',ARB:'ara',BEN:'ben',BOS:'bos',CKB:'ckb',HAU:'hau',HUN:'hun',ILO:'ilo',KOR:'kor',MAD:'mad',PES:'fas',PLT:'plt',QUG:'qug',RON:'ron',SRP:'srp',SUN:'sun',TGL:'tgl',THA:'tha',VIE:'vie',ZLM:'zlm',
+  // ISO 639-2/B bibliographic codes (lowercase, as stored by scrapers)
+  arb:'ara',baq:'eus',cat:'cat',cze:'ces',dut:'nld',fre:'fra',ger:'deu',glg:'glg',gre:'ell',scc:'srp',und:'eng',
+  // uppercase variants
+  BAQ:'eus',CAT:'cat',CZE:'ces',DUT:'nld',FRE:'fra',GER:'deu',GLG:'glg',GRE:'ell',SCC:'srp',UND:'eng'};
 async function getLangs(db, cache) {
   const hit = cache.get('langs');
   if (hit) return hit;

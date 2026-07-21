@@ -4,8 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <% if (book) { %>
-  <title><%= book.title %> — The Open Stacks</title>
-  <meta name="description" content="<%= (book.desc || ('Read ' + book.title + (book.author && book.author!=='Unknown' ? ' by ' + book.author : '') + ' — free access on The Open Stacks.')).slice(0,160) %>">
+  <title><%= book.title %> · The Open Stacks</title>
+  <meta name="description" content="<%= (book.desc || ('Read ' + book.title + (book.author && book.author!=='Unknown' ? ' by ' + book.author : '') + ' · free access on The Open Stacks.')).slice(0,160) %>">
   <meta property="og:title" content="<%= book.title %>">
   <meta property="og:description" content="<%= (book.desc || '').slice(0, 160) %>">
   <% if (book.cover) { %><meta property="og:image" content="<%= book.cover %>"><% } else { %><meta property="og:image" content="https://theopenstacks.apolochees.me/logo.svg"><% } %>
@@ -30,7 +30,7 @@
   <link rel="alternate" hreflang="x-default" href="https://theopenstacks.apolochees.me/book/<%= book.slug %>">
   <% if (translations && translations.length) { translations.forEach(t => { %><link rel="alternate" hreflang="<%= t.language || 'en' %>" href="https://theopenstacks.apolochees.me/book/<%= t.slug %>"><% }) } %>
   <% } else { %>
-  <title>Not Found — The Open Stacks</title>
+  <title>Not Found · The Open Stacks</title>
   <% } %>
   <meta name="theme-color" content="#c8392b">
   <link rel="icon" href="/logo.svg" type="image/svg+xml">
@@ -448,7 +448,7 @@ txBtn.addEventListener('click', async () => {
   if (cached) {
     bodyText.innerHTML = cached;
     txBtn.textContent = '✕ Original';
-    txStatus.innerHTML = 'from cache — <button onclick="localStorage.removeItem(\''+TX_CACHE_KEY+'_'+engine+'\');txStatus.textContent=\'cleared\'" style="background:none;border:none;color:var(--accent);cursor:pointer;text-decoration:underline;font-size:0.82rem;padding:0">clear</button>';
+    txStatus.innerHTML = 'from cache · <button onclick="localStorage.removeItem(\''+TX_CACHE_KEY+'_'+engine+'\');txStatus.textContent=\'cleared\'" style="background:none;border:none;color:var(--accent);cursor:pointer;text-decoration:underline;font-size:0.82rem;padding:0">clear</button>';
     translated = true; return;
   }
 
@@ -479,7 +479,7 @@ txBtn.addEventListener('click', async () => {
   bodyText.innerHTML = html;
   window.removeEventListener('beforeunload', onUnload);
   txBtn.disabled = false; txBtn.textContent = '✕ Original';
-  txStatus.innerHTML = `via ${engine==='google'?'Google':'MyMemory'} — <button id="contribTx" class="tx-contribute-btn">contribute this translation →</button>`;
+  txStatus.innerHTML = `via ${engine==='google'?'Google':'MyMemory'} · <button id="contribTx" class="tx-contribute-btn">contribute this translation →</button>`;
   translated = true;
 
   document.getElementById('contribTx').addEventListener('click', async () => {

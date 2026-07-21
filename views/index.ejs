@@ -4,14 +4,14 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <%
-    const _title = q ? `"${q}" — The Open Stacks`
-      : category ? `${category.replace(/-/g,' ')} — The Open Stacks`
-      : source   ? `${source} — The Open Stacks`
-      : 'The Open Stacks — Free Radical Library';
+    const _title = q ? `"${q}" · The Open Stacks`
+      : category ? `${category.replace(/-/g,' ')} · The Open Stacks`
+      : source   ? `${source} · The Open Stacks`
+      : 'The Open Stacks · Free Radical Library';
     const _desc = q ? `Search results for "${q}" in the Open Stacks radical library.`
-      : category ? `Browse ${category.replace(/-/g,' ')} texts — free radical library with ${stats.total ? stats.total.toLocaleString() + ' items' : 'thousands of items'}.`
-      : source   ? `All texts from ${source} — archived on The Open Stacks.`
-      : `A free, open-access archive of anarchist, anti-fascist, and radical political texts. ${stats.total ? stats.total.toLocaleString() + ' items' : ''} — no account, no tracking.`;
+      : category ? `Browse ${category.replace(/-/g,' ')} texts · free radical library with ${stats.total ? stats.total.toLocaleString() + ' items' : 'thousands of items'}.`
+      : source   ? `All texts from ${source} · archived on The Open Stacks.`
+      : `A free, open-access archive of anarchist, anti-fascist, and radical political texts. ${stats.total ? stats.total.toLocaleString() + ' items' : ''} · no account, no tracking.`;
     const _canonical = canonical || `https://theopenstacks.apolochees.me${req.path}${Object.keys(req.query).length ? '?'+new URLSearchParams(req.query).toString() : ''}`;
   %>
   <title><%= _title %></title>
@@ -108,30 +108,29 @@
 
 <div class="filter-bar-wrap">
 <div class="filter-bar">
-  <a href="/" class="pill<%= !category && !source ? ' active' : '' %>">All</a>
+  <a href="/" class="pill<%= !category && !source && !lang ? ' active' : '' %>">All</a>
   <span class="pill-sep">·</span>
   <% categories.filter(c=>c!=='anarchism').forEach(cat => { %>
     <a href="/category/<%= encodeURIComponent(cat) %>"
        class="pill<%= category === cat ? ' active' : '' %>"><%= cat.replace(/-/g,' ') %></a>
   <% }) %>
+  <span class="pill-sep">·</span>
+  <a href="/random" class="pill pill-random">⚄</a>
 </div>
 </div>
-<div class="filter-bar-wrap">
+<div class="filter-bar-wrap filter-bar-row2">
 <div class="filter-bar filter-bar-secondary">
-  <a href="/random" class="pill pill-random">⚄ Random</a>
   <% sources.forEach(s => { %>
-  <a href="/source/<%= encodeURIComponent(s) %>" class="pill<%= source === s ? ' active' : '' %>"><%= s %></a>
+  <a href="/source/<%= encodeURIComponent(s) %>" class="pill pill-src<%= source === s ? ' active' : '' %>"><%= s %></a>
   <% }) %>
-</div>
-</div>
-<div class="filter-bar-wrap filter-bar-langs">
-<div class="filter-bar filter-bar-secondary">
-  <span class="pill-sep" style="font-size:0.7rem;opacity:.5;flex-shrink:0"></span>
-  <a href="/?<%= new URLSearchParams(Object.assign({}, q?{q}:{}, category?{category}:{}, source?{source}:{})).toString() %>" class="pill<%= !lang ? ' active' : '' %>">All</a>
+  <% if (langs.length > 0) { %>
+  <span class="pill-sep">|</span>
+  <a href="/?<%= new URLSearchParams(Object.assign({}, q?{q}:{}, category?{category}:{}, source?{source}:{})).toString() %>" class="pill pill-sm<%= !lang ? ' active' : '' %>">all lang</a>
   <% langs.forEach(l => { %>
   <a href="/?<%= new URLSearchParams(Object.assign({}, q?{q}:{}, category?{category}:{}, source?{source}:{}, {lang:l.code})).toString() %>"
-     class="pill<%= lang===l.code ? ' active' : '' %>"><%= l.label %></a>
+     class="pill pill-sm<%= lang===l.code ? ' active' : '' %>"><%= l.label %></a>
   <% }) %>
+  <% } %>
 </div>
 </div>
 
@@ -139,9 +138,9 @@
 
 <main class="container">
   <div class="results-meta">
-    <% if (q) { %>Results for "<strong><%= q %></strong>" — <%= total.toLocaleString() %> found
-    <% } else if (source) { %><strong><%= source %></strong> — <%= total.toLocaleString() %> items
-    <% } else if (category) { %><strong><%= category %></strong> — <%= total.toLocaleString() %> items
+    <% if (q) { %>Results for "<strong><%= q %></strong>" · <%= total.toLocaleString() %> found
+    <% } else if (source) { %><strong><%= source %></strong> · <%= total.toLocaleString() %> items
+    <% } else if (category) { %><strong><%= category %></strong> · <%= total.toLocaleString() %> items
     <% } else { %><% } %>
   </div>
 

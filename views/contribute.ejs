@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Contribute — The Open Stacks</title>
-  <meta name="description" content="Add a text to The Open Stacks. Pamphlets, zines, essays, books — if it's radical and at risk, it belongs here.">
+  <title>Contribute · The Open Stacks</title>
+  <meta name="description" content="Add a text to The Open Stacks. Pamphlets, zines, essays, books · if it's radical and at risk, it belongs here.">
   <meta name="theme-color" content="#c8392b">
   <link rel="icon" href="/logo.svg" type="image/svg+xml">
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -33,7 +33,7 @@ document.getElementById('themeToggle').addEventListener('click',()=>{const n=doc
 <main class="page-inner">
   <div class="page-header">
     <h1>Contribute a Text</h1>
-    <p class="page-subtitle">Pamphlets. Zines. Essays. Books. If it's radical and at risk of erasure — it belongs here. Fill out what you know, paste the text or link a source, and we'll open a PR in the data repo for review.</p>
+    <p class="page-subtitle">Pamphlets. Zines. Essays. Books. If it's radical and at risk of erasure · it belongs here. Fill out what you know, paste the text or link a source, and we'll open a PR in the data repo for review.</p>
   </div>
 
   <div class="contribute-layout">
@@ -101,7 +101,7 @@ document.getElementById('themeToggle').addEventListener('click',()=>{const n=doc
         </div>
 
         <div class="form-section-label">Content
-          <span class="field-hint">Paste the text directly — or just leave it blank and add the source URL. We can pull the full text later.</span>
+          <span class="field-hint">Paste the text directly · or just leave it blank and add the source URL. We can pull the full text later.</span>
         </div>
 
         <div class="contrib-tabs">
@@ -119,7 +119,7 @@ document.getElementById('themeToggle').addEventListener('click',()=>{const n=doc
             <label class="file-drop" id="file-drop">
               <input type="file" id="f-file" accept=".txt,.md,.markdown,.pdf" style="display:none">
               <span class="file-drop-icon">⇪</span>
-              <span id="file-label">Drop a .txt, .md, or .pdf — PDFs get OCR'd automatically</span>
+              <span id="file-label">Drop a .txt, .md, or .pdf · PDFs get OCR'd automatically</span>
             </label>
           </div>
         </div>
@@ -129,7 +129,7 @@ document.getElementById('themeToggle').addEventListener('click',()=>{const n=doc
             <span id="submit-label">Open pull request →</span>
           </button>
           <p class="form-note">This opens a PR on <a href="https://github.com/taynotfound/open-stacks-library" target="_blank" rel="noopener">open-stacks-library</a>. A maintainer will review and merge it. No account needed.</p>
-          <p class="form-note" style="color:var(--muted)">⚠ PDFs may take a moment to extract — text is pulled from the file and shown in the editor before submitting.</p>
+          <p class="form-note" style="color:var(--muted)">⚠ PDFs may take a moment to extract · text is pulled from the file and shown in the editor before submitting.</p>
         </div>
       </form>
     </div>
@@ -165,7 +165,7 @@ document.getElementById('themeToggle').addEventListener('click',()=>{const n=doc
       </div>
       <div class="sidebar-card red-card">
         <strong>Take what you need.</strong><br>Give what you can.<br><br>
-        — Kommando 161 ⚑
+        · Kommando 161 ⚑
       </div>
     </aside>
   </div>
@@ -203,7 +203,7 @@ async function extractPDF(file) {
   }
 
   const arrayBuf = await file.arrayBuffer();
-  // pdf.js transfers/detaches the ArrayBuffer — keep a copy for upload
+  // pdf.js transfers/detaches the ArrayBuffer · keep a copy for upload
   window._pdfBytes = arrayBuf.slice(0);
 
   const pdf = await pdfjsLib.getDocument({ data: arrayBuf }).promise;
@@ -218,7 +218,7 @@ async function extractPDF(file) {
     if (pageText.length > 20) {
       pages.push(pageText);
     } else {
-      // image-only page — OCR it
+      // image-only page · OCR it
       fileLabel.textContent = `🔍 OCR page ${i}/${pdf.numPages}…`;
       if (!Tesseract) {
         await new Promise((res, rej) => {
@@ -254,7 +254,7 @@ fileInput.addEventListener('change', async () => {
     try {
       const text = await extractPDF(file);
       document.getElementById('f-text').value = text;
-      fileLabel.textContent = `✓ ${file.name} — ${pdf_pages_count(text)} extracted`;
+      fileLabel.textContent = `✓ ${file.name} · ${pdf_pages_count(text)} extracted`;
       document.querySelectorAll('.contrib-tab')[0].click();
     } catch(e) {
       fileLabel.textContent = `✕ OCR failed: ${e.message}`;
