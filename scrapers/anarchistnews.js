@@ -1,6 +1,6 @@
 // Anarchist News — RSS scraper
 // ponytail: RSS only ~20 items; incremental via cron
-const { getDb, closeDb, slugify, upsert, get, strip } = require('./lib');
+const { getDb, closeDb, slugify, upsert, get, strip, fetchBody } = require('./lib');
 
 (async () => {
   const db = await getDb();
@@ -13,7 +13,8 @@ const { getDb, closeDb, slugify, upsert, get, strip } = require('./lib');
     if (!link || !title) continue;
     const slug = slugify('an-' + link.replace(/https?:\/\/[^/]+\//, '').replace(/\//g, '-').replace(/-$/, ''));
     if (await db.collection('books').findOne({ slug }, { projection: { _id: 1 } })) continue;
-    await upsert(db, { slug, title, author: 'Anarchist News', desc, source: link, sourceName: 'anarchistnews.org', category: 'anarchist-news', language: 'eng', tags: ['anarchism', 'news'], hasBody: false, body: '', atRisk: false, cover: '', files: [], images: [], links: [], state: 'active', path: '', pageType: 'external' });
+    const body = (await fetchBody(link).catch(() => null)) || '';
+    await upsert(db, { slug, title, author: 'Anarchist News', desc: desc || body.slice(0, 300), body, source: link, sourceName: 'anarchistnews.org', category: 'anarchist-news', language: 'eng', tags: ['anarchism', 'news'], hasBody: body.length > 100, atRisk: false, cover: '', files: [], images: [], links: [], state: 'active', path: '', pageType: 'external' });
     inserted++;
   }
   console.log(`[AnarchistNews] +${inserted} new`);

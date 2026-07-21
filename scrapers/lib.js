@@ -1,4 +1,3 @@
-// ponytail: shared upsert + slug helper for all scrapers
 const https = require('https');
 const { MongoClient } = require('mongodb');
 require('dotenv').config({ path: require('path').join(__dirname, '../.env') });
@@ -18,7 +17,6 @@ function slugify(s) {
   return s.toLowerCase().replace(/[^\w\s-]/g, '').replace(/\s+/g, '-').replace(/-+/g, '-').slice(0, 80);
 }
 
-// upsert by slug; returns true if inserted
 async function upsert(db, doc) {
   for (let i = 0; i < 3; i++) {
     try {
@@ -48,11 +46,47 @@ function get(url, ua = 'OpenStacks/1.0', rd = 5) {
 
 const strip = s => {
   let t = (s || '').replace(/<!\[CDATA\[/g, '').replace(/\]\]>/g, '');
-  // decode first (handles double-encoded HTML like &lt;span&gt;), then strip tags, then decode again
   const dec = x => x.replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#039;/g, "'").replace(/&#(\d+);/g, (_, n) => String.fromCharCode(n)).replace(/&nbsp;/g, ' ');
-  t = dec(t);
-  t = t.replace(/<[^>]+>/g, ' ');
-  return dec(t).replace(/\s+/g, ' ').trim();
+  return dec(t.replace(/<[^>]+>/g, ' ')).replace(/\s+/g, ' ').trim();
 };
 
-module.exports = { getDb, closeDb, slugify, upsert, get, strip };
+// Fetch main article text from a URL — site-specific selectors, falls back to <article>/<main>
+function fetchBody(url, timeout = 10000) {
+  return new Promise(resolve => {
+    if (!url) return resolve(null);
+    const u = new URL(url);
+    const req = https.get({ hostname: u.hostname, path: u.pathname + u.search, headers: { 'User-Agent': 'TheOpenStacks/1.0', Accept: 'text/html' }, timeout }, res => {
+      if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location)
+        return fetchBody(new URL(res.headers.location, url).href, timeout).then(resolve);
+      if (res.statusCode !== 200) return resolve(null);
+      let d = ''; res.on('data', c => { d += c; if (d.length > 2e6) req.destroy(); });
+      res.on('end', () => {
+        d = d.replace(/<script[\s\S]*?<\/script>/gi, '').replace(/<style[\s\S]*?<\/style>/gi, '');
+        const selectors = /anarchistlibrar/i.test(url) ? ['id="main-text"', 'class="muse-format-content"']
+          : /libcom\.org/i.test(url) ? ['class="field--name-body"', 'class="node__content"']
+          : /crimethinc\.com/i.test(url) ? ['class="content-container"', 'class="entry-content"']
+          : ['class="entry-content"', 'class="post-content"', 'class="article-content"', 'class="content"', 'itemprop="articleBody"'];
+        selectors.push('<article', '<main');
+        for (const sel of selectors) {
+          const idx = d.indexOf(sel);
+          if (idx === -1) continue;
+          const tag = d.slice(d.lastIndexOf('<', idx) + 1, idx).trim().split(/\s/)[0];
+          const start = d.indexOf('>', idx) + 1;
+          let block = d.slice(start, start + 300000);
+          const ci = block.lastIndexOf(`</${tag}>`);
+          if (ci > 100) block = block.slice(0, ci);
+          const text = block.replace(/<br\s*\/?>/gi, '\n').replace(/<\/p>/gi, '\n\n').replace(/<\/h[1-6]>/gi, '\n\n')
+            .replace(/<\/li>/gi, '\n').replace(/<[^>]+>/g, '')
+            .replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&nbsp;/g, ' ').replace(/&#39;/g, "'").replace(/&quot;/g, '"')
+            .replace(/\n{3,}/g, '\n\n').trim();
+          if (text.length > 300) return resolve(text);
+        }
+        resolve(null);
+      });
+    });
+    req.on('error', () => resolve(null));
+    req.on('timeout', () => { req.destroy(); resolve(null); });
+  });
+}
+
+module.exports = { getDb, closeDb, slugify, upsert, get, strip, fetchBody };

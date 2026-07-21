@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Generic RSS scraper — add sources here, runs in run_all.js
-const { getDb, closeDb, slugify, upsert, get, strip } = require('./lib');
+const { getDb, closeDb, slugify, upsert, get, strip, fetchBody } = require('./lib');
 const FF = 'Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0';
 
 const SOURCES = [
@@ -24,13 +24,18 @@ async function scrapeOne(db, src) {
     const title = strip((item.match(/<title>([\s\S]*?)<\/title>/) || [])[1] || '').slice(0, 200);
     const desc = strip((item.match(/<description>([\s\S]*?)<\/description>/) || [])[1] || '').slice(0, 300);
     const epubUrl = src.hasEpub ? ((item.match(/<enclosure[^>]+url="([^"]+\.epub)"/) || [])[1] || '') : '';
-    const body = !src.hasEpub ? strip((item.match(/<content:encoded>([\s\S]*?)<\/content:encoded>/) || item.match(/<description>([\s\S]*?)<\/description>/) || [])[1] || '').slice(0, 80000) : '';
+    const rssBody = !src.hasEpub ? strip((item.match(/<content:encoded>([\s\S]*?)<\/content:encoded>/) || item.match(/<description>([\s\S]*?)<\/description>/) || [])[1] || '').slice(0, 80000) : '';
     const rawAuthor = strip((item.match(/<dc:creator>([\s\S]*?)<\/dc:creator>/) || [])[1] || '');
     // reject machine-account usernames (no spaces, all-lowercase, contains digits)
     const author = (rawAuthor && rawAuthor.length < 60 && /\s/.test(rawAuthor)) ? rawAuthor : src.name;
     if (!link || !title) continue;
     const slug = src.slug + '-' + slugify(title).slice(0, 68);
     if (await db.collection('books').findOne({ slug }, { projection: { _id: 1 } })) continue;
+    // fetch full article if RSS body is thin (TAL always has body via src.txt, skip)
+    let body = rssBody;
+    if (!src.hasEpub && body.length < 500 && link) {
+      body = (await fetchBody(link).catch(() => null)) || rssBody;
+    }
     await upsert(db, {
       slug, title, author, desc: (desc || body.slice(0, 300)).replace(/\s+/g, ' ').trim(),
       source: link, sourceName: src.name, category: src.category, language: 'eng',
