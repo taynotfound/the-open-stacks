@@ -42,7 +42,8 @@
 fetch('/api/news').then(r=>r.json()).then(d=>{
   if(!d||!d.length) return;
   const el=document.getElementById('tickerScroll');
-  el.innerHTML=d.slice(0,24).map(it=>`<a href="${it.url}" target="_blank" rel="noopener" class="ticker-link">${it.title}</a>`).join('<span class="ticker-divider">·</span>');
+  const html=d.slice(0,24).map(it=>`<a href="${it.url}" target="_blank" rel="noopener" class="ticker-link">${it.title}</a>`).join('<span class="ticker-divider">·</span>');
+  el.innerHTML=`<div class="ticker-track">${html}<span class="ticker-divider">·</span></div><div class="ticker-track" aria-hidden="true">${html}<span class="ticker-divider">·</span></div>`;
 }).catch(()=>{});
 </script>
 <% } %>

@@ -66,12 +66,17 @@ code { font-family: 'Fira Code', 'Courier New', monospace; font-size: 0.85em; ba
   flex-shrink: 0;
 }
 .ticker-scroll {
-  display: flex; align-items: center; gap: 0.6rem;
-  overflow-x: auto; scrollbar-width: none; white-space: nowrap;
-  min-width: 0; flex: 1;
-  mask-image: linear-gradient(to right, black 92%, transparent 100%);
+  display: flex; overflow: hidden; min-width: 0; flex: 1;
+  mask-image: linear-gradient(to right, transparent 0, black 2%, black 96%, transparent 100%);
 }
-.ticker-scroll::-webkit-scrollbar { display: none; }
+.ticker-scroll:hover .ticker-track { animation-play-state: paused; }
+.ticker-track {
+  display: flex; align-items: center; gap: 0.6rem; padding-right: 0.6rem;
+  flex-shrink: 0; white-space: nowrap;
+  animation: tickerScroll 90s linear infinite;
+}
+@keyframes tickerScroll { to { transform: translateX(-100%); } }
+@media (prefers-reduced-motion: reduce) { .ticker-track { animation: none; } .ticker-scroll { overflow-x: auto; } }
 .ticker-link { color: var(--muted); white-space: nowrap; flex-shrink: 0; transition: color 0.1s; }
 .ticker-link:hover { color: var(--text); }
 .ticker-divider { color: var(--muted2); flex-shrink: 0; user-select: none; }
@@ -583,3 +588,24 @@ h3.footnotes-heading { font-size: 0.9rem; text-transform: uppercase; letter-spac
 @media (prefers-reduced-motion: reduce) {
   .book-card, .body-text { animation: none; }
 }
+
+/* search button inside search field */
+.search-wrap { position: relative; }
+.nav-search input { padding-right: 2.2rem; }
+.search-btn {
+  position: absolute; right: 4px; top: 50%; transform: translateY(-50%);
+  background: none; border: none; color: var(--muted); cursor: pointer;
+  font-size: 1rem; line-height: 1; padding: 0.25rem 0.45rem; border-radius: 4px;
+  transition: color 0.1s;
+}
+.search-btn:hover { color: var(--accent); }
+
+/* political stance */
+.foot-stance {
+  border-top: 1px solid var(--border);
+  padding: 0.85rem 1rem;
+  text-align: center;
+  font-family: var(--serif); font-style: italic;
+  font-size: 0.85rem; color: var(--muted); line-height: 1.6;
+}
+.foot-stance .red { color: var(--accent); font-style: normal; font-weight: 600; }

@@ -7,6 +7,7 @@
   <div class="nav-search">
     <div class="search-wrap">
       <input type="text" id="search-input" placeholder="Search texts, authors, topics…" value="<%= locals.q || '' %>" autocomplete="off" spellcheck="false">
+      <button type="button" id="search-btn" class="search-btn" title="Search" aria-label="Search">⌕</button>
       <div id="search-suggest" class="search-suggest"></div>
     </div>
   </div>
@@ -20,4 +21,6 @@ const t=localStorage.theme==='light'?'light':'dark';
 document.documentElement.dataset.theme=t;
 document.getElementById('themeToggle').textContent=t==='light'?'☾':'☀';
 document.getElementById('themeToggle').addEventListener('click',()=>{const n=document.documentElement.dataset.theme==='light'?'dark':'light';document.documentElement.dataset.theme=n;localStorage.theme=n;document.getElementById('themeToggle').textContent=n==='light'?'☾':'☀';});
+const sb=document.getElementById('search-btn');
+if(sb) sb.addEventListener('click',()=>{const i=document.getElementById('search-input');const v=i.value.trim();if(v)location.href='/?q='+encodeURIComponent(v);else i.focus();});
 </script>
