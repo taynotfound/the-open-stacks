@@ -40,7 +40,7 @@ async function connectDB() {
   }
   const runScrapers = () => {
     const t = Date.now();
-    execFile('node', ['scrapers/run_all.js'], { cwd: __dirname, timeout: 5 * 60 * 1000 }, (err, stdout, stderr) => {
+    execFile('node', ['scrapers/run_all.js'], { cwd: __dirname, timeout: 15 * 60 * 1000 }, (err, stdout, stderr) => {
       const elapsed = ((Date.now() - t) / 1000).toFixed(1);
       const lines = (stdout + stderr).split('\n').filter(Boolean);
       const added = lines.filter(l => /insert|new|added/i.test(l)).length;
