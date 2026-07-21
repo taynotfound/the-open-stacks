@@ -30,6 +30,7 @@ async function connectDB() {
   _fc();
   setInterval(_fc, 15 * 60 * 1000); // ponytail: 15min, dial back once backfill done
   // run scrapers daily
+  if (!process.env.VERCEL) {
   const { execFile } = require('child_process');
   const WEBHOOK = 'https://discord.com/api/webhooks/1527697124471476315/cRRtYP7XXrcD0BOeLI3ZclDIb0psPimSyeLQoJSAyXYkQ4qjZLBWQDDMuJtDdcVh5rt6';
   function postWebhook(content) {
@@ -53,7 +54,8 @@ async function connectDB() {
   };
   runScrapers();
   setInterval(runScrapers, 20 * 60 * 1000);
-}
+  } // end !VERCEL
+} // end connectDB
 
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
