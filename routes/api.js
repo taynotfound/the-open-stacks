@@ -92,6 +92,27 @@ router.get('/search', async (req, res) => {
   res.json({ books, total, page: parseInt(page), pages: Math.ceil(total / lim) });
 });
 
+// IA file list — proxy metadata API, cache 1h
+// ponytail: client fetches this on demand, no scrape-time overhead
+const SKIP_FORMATS = /Metadata|Torrent|JPEG Thumb|Item Tile|chOCR|DjVu XML|Scandata|hOCR|Page Numbers|OCR/i;
+router.get('/ia-files/:id', async (req, res) => {
+  const { cache } = res.locals;
+  const id = req.params.id.replace(/[^a-zA-Z0-9_.-]/g, '');
+  const ck = `ia:${id}`;
+  const hit = cache.get(ck);
+  if (hit) return res.json(hit);
+  try {
+    const raw = await httpsGet(`https://archive.org/metadata/${id}`);
+    const meta = JSON.parse(raw);
+    const base = `https://archive.org/download/${id}/`;
+    const files = (meta.files || [])
+      .filter(f => !SKIP_FORMATS.test(f.format || ''))
+      .map(f => ({ name: f.name, url: base + encodeURIComponent(f.name), format: f.format, size: f.size }));
+    cache.set(ck, files, 3600);
+    res.json(files);
+  } catch { res.json([]); }
+});
+
 router.get('/book/:slug', async (req, res) => {
   const { db, cache } = res.locals;
   if (!db) return res.status(503).json({ error: 'DB unavailable' });
