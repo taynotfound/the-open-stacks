@@ -46,7 +46,13 @@ function get(url, ua = 'OpenStacks/1.0', rd = 5) {
   });
 }
 
-const strip = s => (s || '').replace(/<!\[CDATA\[/g, '').replace(/\]\]>/g, '').replace(/<[^>]+>/g, ' ')
-  .replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#039;/g, "'").replace(/\s+/g, ' ').trim();
+const strip = s => {
+  let t = (s || '').replace(/<!\[CDATA\[/g, '').replace(/\]\]>/g, '');
+  // decode first (handles double-encoded HTML like &lt;span&gt;), then strip tags, then decode again
+  const dec = x => x.replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#039;/g, "'").replace(/&#(\d+);/g, (_, n) => String.fromCharCode(n)).replace(/&nbsp;/g, ' ');
+  t = dec(t);
+  t = t.replace(/<[^>]+>/g, ' ');
+  return dec(t).replace(/\s+/g, ' ').trim();
+};
 
 module.exports = { getDb, closeDb, slugify, upsert, get, strip };
