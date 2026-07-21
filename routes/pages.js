@@ -238,7 +238,8 @@ async function getStats(db, cache) {
   if (hit) return hit;
   try {
     const col = db.collection('books');
-    const [total, withBody] = await Promise.all([col.countDocuments(), col.countDocuments({ hasBody: true })]);
+    const f = { isCanonical: { $ne: false } };
+    const [total, withBody] = await Promise.all([col.countDocuments(f), col.countDocuments({ ...f, hasBody: true })]);
     const sources = (await col.distinct('sourceName')).filter(Boolean).length;
     const result = { total, withBody, sources };
     cache.set('stats', result, 600);
@@ -305,20 +306,7 @@ async function indexHandler(req, res) {
       cache.set('sources', sources, 600);
     } catch { sources = []; }
   }
-  // recent: show 8 newest on homepage only (no filters, page 1)
-  let recent = [];
-  if (db && !q && !category && !lang && !source && parseInt(page) === 1) {
-    try {
-      recent = await db.collection('books').find({ isCanonical: { $ne: false } })
-        .sort({ added: -1 }).limit(8)
-        .project({ slug:1, title:1, author:1, cover:1, sourceName:1, added:1, body:1 })
-        .toArray().then(bs => bs.map(b => {
-          if (!b.cover && b.body) { const m = b.body.match(/\[\[(https?:\/\/[^\]\s]+)|\!\[[^\]]*\]\((https?:\/\/[^)]+)\)/); if (m) b.cover = m[1] || m[2]; }
-          delete b.body; return b;
-        }));
-    } catch {}
-  }
-  res.render('index', { books, total, page: parseInt(page), pages: Math.ceil(total / limit), stats, categories, langs, sources: sources || [], q: q || '', category: category || '', lang: lang || '', source: source || '', canonical: req.prettyCanonical || null, error, recent });
+  res.render('index', { books, total, page: parseInt(page), pages: Math.ceil(total / limit), stats, categories, langs, sources: sources || [], q: q || '', category: category || '', lang: lang || '', source: source || '', canonical: req.prettyCanonical || null, error });
 }
 
 router.get('/', indexHandler);

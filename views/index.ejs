@@ -106,26 +106,6 @@
 </script>
 <% } %>
 
-<% if (recent && recent.length && !q && !category && !source && !lang && page === 1) { %>
-<section class="recent-section container">
-  <div class="recent-hd">
-    <span class="recent-label">Recently Added</span>
-    <a href="/feed.xml" class="recent-rss" title="RSS Feed">⚡ RSS</a>
-  </div>
-  <div class="recent-row">
-    <% recent.forEach(b => { %>
-    <a href="/book/<%= b.slug %>" class="recent-card">
-      <% if (b.cover) { %><img src="<%= b.cover %>" alt="" class="recent-thumb" loading="lazy"><% } else { %><div class="recent-thumb recent-thumb-ph"><%= (b.title||'?')[0].toUpperCase() %></div><% } %>
-      <div class="recent-info">
-        <div class="recent-title"><%= b.title %></div>
-        <div class="recent-meta"><%= b.sourceName || b.author || '' %></div>
-      </div>
-    </a>
-    <% }) %>
-  </div>
-</section>
-<% } %>
-
 <div class="filter-bar-wrap">
 <div class="filter-bar">
   <a href="/" class="pill<%= !category && !source ? ' active' : '' %>">All</a>
