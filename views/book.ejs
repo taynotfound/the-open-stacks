@@ -60,6 +60,8 @@
 
     <article>
       <header class="book-header">
+        <% if (book.cover) { %><img src="<%= book.cover %>" class="book-header-cover" alt=""><% } %>
+        <div class="book-header-info">
         <% if (book.category) { %><a href="/category/<%= book.category %>" class="category-label"><%= book.category %></a><% } %>
         <h1 class="book-title"><%= book.title %></h1>
         <% if (book.author && book.author !== 'Unknown') { %><div class="book-author">by <%= book.author %></div><% } %>
@@ -74,7 +76,8 @@
           <% if (book.olKey) { %><a href="https://openlibrary.org<%= book.olKey %>" class="meta-pill meta-pill-link" target="_blank" rel="noopener">Open Library ↗</a><% } %>
           <% if (book.hasBody) { %><span class="meta-pill pill-text">Full text</span><% } %>
           <% if (book.translatedFrom && book.translatedFrom.trim()) { %><span class="meta-pill pill-trans">Translated from <%= book.translatedFrom %><% if (book.translatedType) { %> · <%= book.translatedType %><% } %></span><% } %>
-        </div>
+        </div><!-- book-meta-row -->
+        </div><!-- book-header-info -->
       </header>
 
       <% if (book.translatedFrom && book.translatedFrom.trim() && book.originalSlug) { %>
@@ -211,11 +214,6 @@
         <% } %>
 
         <div class="book-content-col">
-          <% if (book.cover) { %>
-          <div class="book-cover-hero">
-            <img src="<%= book.cover %>" alt="Cover of <%= book.title %>" loading="lazy">
-          </div>
-          <% } %>
           <div id="tx-content">
             <div class="body-text" id="bodyText"><%- body %></div>
           </div>

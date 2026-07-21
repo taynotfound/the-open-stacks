@@ -30,7 +30,7 @@ async function fillCovers(db) {
       const update = {};
 
       if (doc.cover_i) {
-        const coverUrl = `https://covers.openlibrary.org/b/id/${doc.cover_i}-L.jpg`;
+        const coverUrl = `https://covers.openlibrary.org/b/id/${doc.cover_i}-XL.jpg`;
         // validate cover — skip broken images
         const ok = await new Promise(res => {
           https.request(coverUrl, { method: 'HEAD' }, r => res(r.statusCode === 200)).on('error', () => res(false)).end();
