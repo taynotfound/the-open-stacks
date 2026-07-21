@@ -25,7 +25,9 @@ async function connectDB() {
   setInterval(() => db.command({ ping: 1 }).catch(() => {}), 4 * 60 * 1000);
   // fill missing covers/metadata once on boot
   const { fillCovers } = require('./routes/api');
-  fillCovers(db).then(r => console.log('fill-covers:', r)).catch(() => {});
+  const _fc = () => fillCovers(db).then(r => console.log('fill-covers:', r)).catch(() => {});
+  _fc();
+  setInterval(_fc, 15 * 60 * 1000); // ponytail: 15min, dial back once backfill done
 }
 
 app.set('view engine', 'ejs');
