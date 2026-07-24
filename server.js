@@ -56,6 +56,9 @@ async function connectDB() {
         if (errs.length) msg += `\n⚠️ errors: ${errs.slice(0,3).join('; ')}`;
         postWebhook(msg);
       });
+      // push new scraped bodies to the library repo (idempotent, only unpushed items)
+      execFile('node', ['scripts/push_bodies.js'], { cwd: __dirname, timeout: 15 * 60 * 1000 }, () => {});
+      execFile('node', ['scripts/backfill_ia_text.js'], { cwd: __dirname, timeout: 15 * 60 * 1000 }, () => {});
     });
   };
   runScrapers();
