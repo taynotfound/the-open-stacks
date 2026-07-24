@@ -646,3 +646,15 @@ h3.footnotes-heading { font-size: 0.9rem; text-transform: uppercase; letter-spac
   .nav-logo-sub, .nav-logo-name { display: none; }
   .nav-search { flex: 1; }
 }
+
+/* mobile filter dropdowns */
+.fdrop-menu { max-width: calc(100vw - 2rem); }
+@media (max-width: 600px) {
+  .toolbar { overflow-x: auto; overflow-y: visible; scrollbar-width: none; }
+  .toolbar::-webkit-scrollbar { display: none; }
+  .fdrop { position: static; }
+  .fdrop-menu {
+    position: fixed; left: 1rem; right: 1rem; top: 86px;
+    min-width: 0; max-width: none; max-height: 55vh;
+  }
+}
