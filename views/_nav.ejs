@@ -1,7 +1,7 @@
 <nav class="nav">
   <a href="/" class="nav-logo">
     <img src="/logo.svg" alt="">
-    The Open Stacks
+    <span class="nav-logo-name">The Open Stacks</span>
   </a>
   <% if (locals.showSearch !== false) { %>
   <div class="nav-search">
@@ -13,7 +13,7 @@
   </div>
   <% } %>
   <div class="nav-right">
-    <button id="themeToggle" class="theme-toggle" title="Toggle light mode">☀</button>
+    <button id="themeToggle" class="theme-toggle" title="Toggle light mode" aria-label="Toggle light mode">☀</button>
   </div>
 </nav>
 <script>

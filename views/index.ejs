@@ -24,9 +24,8 @@
   <meta name="theme-color" content="#c8392b">
   <link rel="icon" href="/logo.svg" type="image/svg+xml">
   <link rel="canonical" href="<%= _canonical %>">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Crimson+Pro:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="https://kit-pro.fontawesome.com/releases/v7.0.0/css/pro.min.css">
+  
+  <link rel="stylesheet" href="/fonts/fonts.css">
   <link rel="stylesheet" href="/style.css">
   <link rel="alternate" type="application/rss+xml" title="The Open Stacks" href="/feed.xml">
 </head>
@@ -35,7 +34,7 @@
 
 <% if (!q && !category && !source && page <= 1) { %>
 <div class="ticker">
-  <span class="ticker-label">Newswire</span>
+  <button class="ticker-label" id="tickerPause" aria-label="Pause newswire" style="background:none;border:none;cursor:pointer;font:inherit;color:var(--accent)">Newswire ⏸</button>
   <div class="ticker-scroll" id="tickerScroll"></div>
 </div>
 <script>
@@ -45,37 +44,62 @@ fetch('/api/news').then(r=>r.json()).then(d=>{
   const html=d.slice(0,24).map(it=>`<a href="${it.url}" target="_blank" rel="noopener" class="ticker-link">${it.title}</a>`).join('<span class="ticker-divider">·</span>');
   el.innerHTML=`<div class="ticker-track">${html}<span class="ticker-divider">·</span></div><div class="ticker-track" aria-hidden="true">${html}<span class="ticker-divider">·</span></div>`;
 }).catch(()=>{});
+document.getElementById('tickerPause').addEventListener('click',function(){
+  const tracks=document.querySelectorAll('.ticker-track');const paused=this.dataset.p==='1';
+  tracks.forEach(t=>t.style.animationPlayState=paused?'running':'paused');
+  this.dataset.p=paused?'':'1';this.textContent=paused?'Newswire ⏸':'Newswire ▶';
+});
 </script>
 <% } %>
 
 <div class="toolbar">
-  <div class="toolbar-pills" id="toolbarPills">
-    <a href="/" class="tpill<%= !category && !source && !lang ? ' on' : '' %>">All</a>
-    <% categories.filter(c=>c!=='anarchism').forEach(cat => { %>
-    <a href="/category/<%= encodeURIComponent(cat) %>" class="tpill<%= category===cat?' on':'' %>"><%= cat.replace(/-/g,' ') %></a>
-    <% }) %>
-    <span class="tpill-divider">|</span>
-    <% sources.forEach(s => { %>
-    <a href="/source/<%= encodeURIComponent(s) %>" class="tpill tpill-src<%= source===s?' on':'' %>"><%= s %></a>
-    <% }) %>
-  </div>
+  <details class="fdrop">
+    <summary>Topics</summary>
+    <div class="fdrop-menu">
+      <a href="/" class="fitem<%= !category && !source && !lang ? ' on' : '' %>">All texts</a>
+      <% categories.filter(c=>c!=='anarchism').forEach(cat => { %>
+      <a href="/category/<%= encodeURIComponent(cat) %>" class="fitem<%= category===cat?' on':'' %>" <%= category===cat?'aria-current="page"':'' %>><%= cat.replace(/-/g,' ') %></a>
+      <% }) %>
+    </div>
+  </details>
+  <details class="fdrop">
+    <summary>Sources</summary>
+    <div class="fdrop-menu fdrop-menu-wide">
+      <% sources.forEach(s => { %>
+      <a href="/source/<%= encodeURIComponent(s) %>" class="fitem<%= source===s?' on':'' %>" <%= source===s?'aria-current="page"':'' %>><%= s %></a>
+      <% }) %>
+    </div>
+  </details>
   <div class="toolbar-end">
     <% if (langs.length > 0) { %>
-    <select class="lang-sel" onchange="if(this.value)location.href=this.value">
+    <select class="lang-sel" aria-label="Language" onchange="if(this.value)location.href=this.value">
       <option value="/?<%= new URLSearchParams(Object.assign({}, q?{q}:{}, category?{category}:{}, source?{source}:{})).toString() %>"<%= !lang?' selected':'' %>>Lang</option>
       <% langs.forEach(l => { %>
       <option value="/?<%= new URLSearchParams(Object.assign({}, q?{q}:{}, category?{category}:{}, source?{source}:{}, {lang:l.code})).toString() %>"<%= lang===l.code?' selected':'' %>><%= l.label %></option>
       <% }) %>
     </select>
     <% } %>
-    <a href="/random" class="tpill tpill-rand" title="Random">⚄</a>
+    <a href="/random" class="tpill tpill-rand" aria-label="Random text">⚄ Random</a>
     <span class="toolbar-count" id="liveTotal"><%= stats.total ? stats.total.toLocaleString() : '' %></span>
   </div>
 </div>
+<% if (category || source || lang) { %>
+<div class="chips">
+  <% if (category) { %><a class="chip" href="/">​<%= category.replace(/-/g,' ') %> ×</a><% } %>
+  <% if (source) { %><a class="chip" href="/"><%= source %> ×</a><% } %>
+  <% if (lang) { %><a class="chip" href="/"><%= lang.toUpperCase() %> ×</a><% } %>
+</div>
+<% } %>
 
 <% if (error) { %><div class="error-banner" style="margin:0.5rem 1rem"><%= error %></div><% } %>
 
 <main class="container">
+  <% if (!q && !category && !source && page <= 1) { %>
+  <div class="intro">
+    <h1 class="intro-title">A free archive of radical and dissident writing.</h1>
+    <p class="intro-sub"><%= stats.total ? stats.total.toLocaleString() : '' %> texts from independent collections. No account, no tracking.</p>
+  </div>
+  <% } %>
   <% if (q || source || category) { %>
   <div class="results-meta">
     <% if (q) { %>Results for "<strong><%= q %></strong>" · <%= total.toLocaleString() %> found
@@ -125,16 +149,10 @@ fetch('/api/news').then(r=>r.json()).then(d=>{
     if(d.total&&d.total!==parseInt(el.textContent.replace(/,/g,'')))el.textContent=d.total.toLocaleString();
   }).catch(()=>{}), 20000);
 })();
-// toolbar scroll overflow indicator
-const pills = document.getElementById('toolbarPills');
-if (pills) {
-  const update = () => pills.classList.toggle('scrollable', pills.scrollWidth > pills.clientWidth + 4);
-  update();
-  window.addEventListener('resize', update, {passive:true});
-  pills.addEventListener('wheel', e => {
-    if (Math.abs(e.deltaX) < Math.abs(e.deltaY)) { e.preventDefault(); pills.scrollBy({left: e.deltaY*2, behavior:'smooth'}); }
-  }, {passive:false});
-}
+// close open filter dropdown on outside click
+document.addEventListener('click', e => {
+  document.querySelectorAll('details.fdrop[open]').forEach(d => { if (!d.contains(e.target)) d.removeAttribute('open'); });
+});
 </script>
 </body>
 </html>
