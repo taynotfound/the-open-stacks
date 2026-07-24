@@ -448,7 +448,7 @@ txBtn.addEventListener('click', async () => {
   if (cached) {
     bodyText.innerHTML = cached;
     txBtn.textContent = '✕ Original';
-    txStatus.innerHTML = 'from cache · <button onclick="localStorage.removeItem(\''+TX_CACHE_KEY+'_'+engine+'\');txStatus.textContent=\'cleared\'" style="background:none;border:none;color:var(--accent);cursor:pointer;text-decoration:underline;font-size:1rem;padding:0">clear</button>';
+    txStatus.innerHTML = 'from cache · <button onclick="localStorage.removeItem(\''+TX_CACHE_KEY+'_'+engine+'\');txStatus.textContent=\'cleared\'" style="background:none;border:none;color:var(--accent);cursor:pointer;text-decoration:underline;font-size:0.82rem;padding:0">clear</button>';
     translated = true; return;
   }
 
