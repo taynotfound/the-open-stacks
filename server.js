@@ -57,7 +57,11 @@ async function connectDB() {
         postWebhook(msg);
       });
       // push new scraped bodies to the library repo (idempotent, only unpushed items)
-      execFile('node', ['scripts/push_bodies.js'], { cwd: __dirname, timeout: 15 * 60 * 1000 }, () => {});
+      execFile('node', ['scripts/push_bodies.js'], { cwd: __dirname, timeout: 15 * 60 * 1000 }, (e, out) => {
+        const n = +(out?.match(/pushed=(\d+)/)?.[1] || 0);
+        if (n) postWebhook(`📤 pushed **${n}** new texts to the [library repo](<https://github.com/taynotfound/open-stacks-library>)`);
+        if (e) postWebhook(`🔴 body push failed: ${e.message}`);
+      });
       execFile('node', ['scripts/backfill_ia_text.js'], { cwd: __dirname, timeout: 15 * 60 * 1000 }, () => {});
     });
   };
