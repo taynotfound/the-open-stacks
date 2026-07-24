@@ -38,6 +38,7 @@ async function scrapeOne(db, src) {
     }
     await upsert(db, {
       slug, title, author, desc: (desc || body.slice(0, 300)).replace(/\s+/g, ' ').trim(),
+      body,
       source: link, sourceName: src.name, category: src.category, language: 'eng',
       tags: [src.category, 'news'], hasBody: body.length > 50, atRisk: false,
       cover: '', files: epubUrl ? [{ url: epubUrl, name: 'epub', ext: 'epub' }] : [], images: [], links: [], state: 'active', path: '', pageType: 'external',

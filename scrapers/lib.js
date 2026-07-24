@@ -113,4 +113,21 @@ function fetchBody(url, timeout = 10000) {
   });
 }
 
-module.exports = { getDb, closeDb, slugify, upsert, get, strip, fetchBody };
+module.exports = { getDb, closeDb, slugify, upsert, get, strip, fetchBody: fetchBodyWithFallback, fetchBodyRaw: fetchBody };
+
+// Jina reader fallback for sites that 403 direct fetches (e.g. counterpunch.org)
+async function fetchBodyWithFallback(url, timeout = 10000) {
+  const direct = await fetchBody(url, timeout);
+  if (direct) return direct;
+  try {
+    const md = await get('https://r.jina.ai/' + url);
+    if (!md || md.length < 500) return null;
+    // strip jina header block and markdown image/link noise
+    const idx = md.indexOf('Markdown Content:');
+    let text = (idx >= 0 ? md.slice(idx + 17) : md)
+      .replace(/!\[[^\]]*\]\([^)]*\)/g, '')
+      .replace(/\[([^\]]*)\]\([^)]*\)/g, '$1')
+      .replace(/\n{3,}/g, '\n\n').trim();
+    return text.length > 300 ? text : null;
+  } catch { return null; }
+}
