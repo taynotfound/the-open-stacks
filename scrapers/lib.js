@@ -113,7 +113,18 @@ function fetchBody(url, timeout = 10000) {
   });
 }
 
-module.exports = { getDb, closeDb, slugify, upsert, get, strip, fetchBody: fetchBodyWithFallback, fetchBodyRaw: fetchBody };
+module.exports = { getDb, closeDb, slugify, upsert, get, strip, fetchBody: fetchBodyWithFallback, fetchBodyRaw: fetchBody, fetchCover };
+
+// og:image from article HTML; jina markdown's first image as 403 fallback
+async function fetchCover(url) {
+  try {
+    const html = await get(url, 'Mozilla/5.0 (X11; Linux x86_64; rv:128.0) Gecko/20100101 Firefox/128.0').catch(() => null);
+    const og = html && (html.match(/property="og:image"[^>]+content="([^"]+)"/) || html.match(/content="([^"]+)"[^>]+property="og:image"/));
+    if (og) return og[1];
+    const md = await get('https://r.jina.ai/' + url);
+    return (md.match(/!\[[^\]]*\]\((https?:\/\/[^)\s]+\.(?:jpe?g|png|webp)[^)\s]*)\)/i) || [])[1] || '';
+  } catch { return ''; }
+}
 
 // Jina reader fallback for sites that 403 direct fetches (e.g. counterpunch.org)
 async function fetchBodyWithFallback(url, timeout = 10000) {
